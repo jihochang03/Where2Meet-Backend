@@ -1,8 +1,7 @@
 from django.contrib import admin 
 from django.urls import path 
-from . import views 
+from .views import QueryView
 
 urlpatterns = [ 
-	path('', views.query_view, name='query_view'), 
-
-] 
+    path('query/', QueryView.as_view(), name='query_view'), 
+]
