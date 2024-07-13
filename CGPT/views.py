@@ -11,6 +11,16 @@ from rest_framework import status
 load_dotenv()
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
+# Factor 키워드 매핑
+factor_keywords = {
+    'factor_2': 'mz세대의 핫플',
+    'factor_3': '밥집',
+    'factor_4': '카페',
+    'factor_5': '술집',
+    'factor_6': '액티비티',
+    'factor_7': '쇼핑',
+}
+
 def get_completion(prompt):
     query = openai.ChatCompletion.create(
         model="gpt-3.5-turbo",
@@ -29,28 +39,27 @@ class QueryView(APIView):
     parser_classes = [JSONParser]
 
     @swagger_auto_schema(
-        operation_description="Get GPT-3.5 completion for a given prompt",
-        request_body=openapi.Schema(
-            type=openapi.TYPE_OBJECT,
-            properties={
-                'prompt': openapi.Schema(type=openapi.TYPE_STRING, description='Prompt to send to GPT-3.5'),
-            },
-            required=['prompt'],
-        ),
+        operation_description="Get GPT-3.5 completion for a given station and selected factors",
         responses={
             status.HTTP_200_OK: openapi.Schema(
                 type=openapi.TYPE_OBJECT,
                 properties={
-                    'response': openapi.Schema(type=openapi.TYPE_STRING, description='Response from GPT-3.5'),
+                    'response': openapi.Schema(type=openapi.TYPE_STRING, description='Summary response from GPT-3.5'),
                 }
             ),
-            status.HTTP_400_BAD_REQUEST: 'Prompt is required',
+            status.HTTP_400_BAD_REQUEST: 'Invalid query parameters',
         }
     )
-    def post(self, request, format=None):
-        prompt = request.data.get('prompt')
-        if not prompt:
-            return Response({'error': 'Prompt is required'}, status=status.HTTP_400_BAD_REQUEST)
+    def get(self, request, format=None):
+        station_name = request.query_params.get('station_name')
+        factors = request.query_params.getlist('factor')
+
+        if not station_name or not factors:
+            return Response({'error': 'station_name and at least one factor are required'}, status=status.HTTP_400_BAD_REQUEST)
         
+        factor_keywords_list = [factor_keywords[factor] for factor in factors]
+        factors_string = ', '.join(factor_keywords_list)
+        prompt = f"약속장소로 '{station_name}'이 적합한 이유를 '{factors_string}' 관점에서 한줄로 설명해줘."
+        print(prompt)
         response = get_completion(prompt)
         return Response({'response': response})
