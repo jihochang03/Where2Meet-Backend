@@ -20,7 +20,7 @@ factor_keywords = {
     'factor_6': '액티비티',
     'factor_7': '쇼핑',
 }
-
+#chatgpt에 넣기
 def get_completion(prompt):
     query = openai.ChatCompletion.create(
         model="gpt-3.5-turbo",
@@ -50,6 +50,7 @@ class QueryView(APIView):
             status.HTTP_400_BAD_REQUEST: 'Invalid query parameters',
         }
     )
+    #prompt 내용 넣기
     def get(self, request, format=None):
         station_name = request.query_params.get('station_name')
         factors = request.query_params.getlist('factor')
