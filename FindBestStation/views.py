@@ -5,7 +5,7 @@ from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 from rest_framework.response import Response
 
-from .utils import calculate_midpoint, find_nearest_stations_kakao, find_best_station,wgs84_to_epsg5179, epsg5179_to_wgs84, get_places, get_transit_time
+from .utils import calculate_midpoint, find_nearest_stations_kakao, find_best_station
 import requests
 import os
 from dotenv import load_dotenv
@@ -59,12 +59,25 @@ transcoord_url = f"https://dapi.kakao.com/v2/local/geo/transcoord.{FORMAT}"
         404: 'No optimal station found',
     }
 )
-@api_view(['POST'])
+@api_view(['POST', 'GET'])
 def find_optimal_station(request):
-    locations = request.data.get('locations', [])
-    print(f"locations:{locations}")
-    factors = request.data.get('factors', [])
-    print(f"factors:{factors}")
+    if request.method == 'POST':
+        locations = request.data.get('locations', [])
+        factors = request.data.get('factors', [])
+    elif request.method == 'GET':
+        locations = request.query_params.getlist('locations')
+        factors = request.query_params.getlist('factors')
+        # Convert locations and factors to appropriate types
+        try:
+            locations = [tuple(map(float, loc.split(','))) for loc in locations]
+            locations = [{'lon': lon, 'lat': lat} for lon, lat in locations]
+            factors = [int(factor) for factor in factors]
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=400)
+
+    print(f"locations: {locations}")
+    print(f"factors: {factors}")
+
     if not locations or len(locations) < 2 or len(locations) > 5:
         return JsonResponse({'error': '2 to 5 locations must be provided.'}, status=400)
 
@@ -81,52 +94,25 @@ def find_optimal_station(request):
 
     # Step 4: 최적의 장소를 팩터로 가중치 세워서 정리. 
     print("--------------------------------")
-    print(f"nearest_stations:{nearest_stations}")
-    print(f"locations:{locations}")
-    print(f"factors:{factors}")
-    best_station = find_best_station(nearest_stations, locations, factors)
+    print(f"nearest_stations: {nearest_stations}")
+    print(f"locations: {locations}")
+    print(f"factors: {factors}")
+    best_stations = find_best_station(nearest_stations, locations, factors)
 
-    if best_station:
-        factors_query = '&'.join([f'factor_{factor}' for factor in factors])
-        redirect_url = f'/summary/?station_name={best_station["station_name"]}&{factors_query}'
-        print(best_station['lon'],best_station['lat'])
-        return Response({
-            "station_name": best_station['station_name'],
-            "coordinates": {"lon": best_station['lon'], "lat": best_station['lat']},
-            "redirect_url": redirect_url,
-            "factors": factors
-        })
+    if best_stations:
+        results = []
+        for best_station in best_stations:
+            factors_query = '&'.join([f'factor_{factor}' for factor in factors])
+            redirect_url = f'/summary/?station_name={best_station["station_name"]}&{factors_query}'
+            result = {
+                "station_name": best_station['station_name'],
+                "coordinates": {"lon": best_station['x'], "lat": best_station['y']},
+                "redirect_url": redirect_url,
+                "factors": factors
+            }
+            results.append(result)
+            print(best_station['x'], best_station['y'])
+        
+        return Response({"best_stations": results})
     else:
         return Response({"error": "No optimal station found"}, status=404)
-
-# @swagger_auto_schema(
-#     method='get',
-#     operation_description="Search places based on keyword",
-#     manual_parameters=[
-#         openapi.Parameter('keyword', openapi.IN_QUERY, type=openapi.TYPE_STRING, description='Keyword to search for places')
-#     ],
-#     responses={
-#         200: openapi.Schema(
-#             type=openapi.TYPE_ARRAY,
-#             items=openapi.Schema(
-#                 type=openapi.TYPE_OBJECT,
-#                 properties={
-#                     'place_name': openapi.Schema(type=openapi.TYPE_STRING, description='Place name'),
-#                     'address_name': openapi.Schema(type=openapi.TYPE_STRING, description='Address'),
-#                     'x': openapi.Schema(type=openapi.TYPE_NUMBER, description='Longitude'),
-#                     'y': openapi.Schema(type=openapi.TYPE_NUMBER, description='Latitude'),
-#                 }
-#             )
-#         ),
-#         400: 'Invalid request or unable to process',
-#     }
-# )
-# @api_view(['GET'])
-# #키워드에 맞게 장소 검색해주는 거. 
-# def search_places(request):
-#     keyword = request.GET.get('keyword')
-#     if not keyword:
-#         return JsonResponse({'error': 'Keyword must be provided.'}, status=400)
-    
-#     places = get_places(keyword)
-#     return JsonResponse(places, safe=False)
