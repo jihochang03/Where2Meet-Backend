@@ -11,28 +11,39 @@ https://docs.djangoproject.com/en/5.0/ref/settings/
 """
 
 from pathlib import Path
-import os, environ
+import os
+import dj_database_url
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
-env = environ.Env(
-  DEBUG=(bool, True)
-)
-environ.Env.read_env(
-  env_file=os.path.join(BASE_DIR, '.env')
-)
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = env('SECRET_KEY')
+import os, environ
+
+env = environ.Env(
+    DEBUG=(bool, True)
+)
+
+environ.Env.read_env(
+    env_file=os.path.join(BASE_DIR, '.env')
+)
+### 여기까지 추가
+
+### 변경
+SECRET_KEY =env('SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
+ALLOWED_HOSTS = ['localhost', '127.0.0.1', 'whereshallwemeet.fly.dev']
 
-ALLOWED_HOSTS = ['localhost', '127.0.0.1']
-
+REST_FRAMEWORK = {
+    'DEFAULT_PERMISSION_CLASSES' : (
+        'rest_framework.permissions.AllowAny',
+    )
+}
 
 # Application definition
 
@@ -43,6 +54,11 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+
+    'rest_framework',
+    'CGPT',
+    'FindBestStation',
+    'drf_yasg',
 ]
 
 MIDDLEWARE = [
@@ -87,6 +103,11 @@ DATABASES = {
 }
 
 
+# 환경 변수 DATABASE_URL이 설정되어 있다면, PostgreSQL 설정을 사용
+DATABASE_URL = os.getenv('DATABASE_URL')
+if DATABASE_URL:
+    DATABASES['default'] = dj_database_url.config(default=DATABASE_URL)
+
 # Password validation
 # https://docs.djangoproject.com/en/5.0/ref/settings/#auth-password-validators
 
@@ -128,8 +149,17 @@ STATIC_URL = 'static/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-REST_FRAMEWORK = {
-    'DEFAULT_PERMISSION_CLASSES' : (
-        'rest_framework.permissions.AllowAny',
-    )
+SWAGGER_SETTINGS = {
+    'USE_SESSION_AUTH': False, # swagger가 기본으로 사용하는 session auth를 사용하지 않음
+    'SECURITY_DEFINITIONS': {
+        'BearerAuth': { # bearer 토큰을 헤더의 Authorization에 담아서 보냄
+            'type': 'apiKey',
+            'name': 'Authorization',
+            'in': 'header',
+            'description': "JWT Token"
+        }
+    },
+    'SECURITY_REQUIREMENTS': [{
+        'BearerAuth': []
+    }]
 }
