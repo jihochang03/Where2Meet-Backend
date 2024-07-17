@@ -4,7 +4,7 @@ from rest_framework.decorators import api_view
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 from rest_framework.response import Response
-
+from decouple import config
 from .utils import calculate_midpoint, find_nearest_stations_kakao, find_best_station
 import requests
 import os
@@ -12,6 +12,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 KAKAO_API_KEY = os.getenv("KAKAO_API_KEY")
+ODSAY_API_KEY = os.getenv('OD_SAY_API_KEY')
 FORMAT = "json"
 search_url = f"https://dapi.kakao.com/v2/local/search/keyword.{FORMAT}"
 transcoord_url = f"https://dapi.kakao.com/v2/local/geo/transcoord.{FORMAT}"
@@ -116,3 +117,20 @@ def find_optimal_station(request):
         return Response({"best_stations": results})
     else:
         return Response({"error": "No optimal station found"}, status=404)
+    
+import requests
+from django.http import JsonResponse
+
+def get_public_transport_info(request):
+    url = "https://api.odsay.com/v1/api/searchPubTransPath"
+    params = {
+        "apiKey": ODSAY_API_KEY,
+        "SX": request.GET.get("SX"),
+        "SY": request.GET.get("SY"),
+        "EX": request.GET.get("EX"),
+        "EY": request.GET.get("EY"),
+        "SearchType": request.GET.get("SearchType", "0")
+    }
+    response = requests.get(url, params=params)
+    data = response.json()
+    return JsonResponse(data)

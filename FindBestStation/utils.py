@@ -14,7 +14,7 @@ load_dotenv()
 KAKAO_API_KEY = os.getenv("KAKAO_API_KEY")
 NAVER_CLIENT_ID = os.getenv("NAVER_CLIENT_ID")
 NAVER_CLIENT_SECRET = os.getenv("NAVER_CLIENT_SECRET")
-
+OD_SAY_API_KEY = os.getenv("OD_SAY_API_KEY")
 FORMAT = "json"
 search_url = f"https://dapi.kakao.com/v2/local/search/keyword.{FORMAT}"
 transcoord_url = f"https://dapi.kakao.com/v2/local/geo/transcoord.{FORMAT}"  # target URL
@@ -91,13 +91,9 @@ def calculate_distance(lat1, lon1, lat2, lon2):
     print(distance)
     return distance
 
-# ODsay API key 설정
-OD_SAY_API_KEY = os.getenv("OD_SAY_API_KEY")
-
-def get_transit_time(start_lon, start_lat, end_lon, end_lat):
+def get_transit_time(start_x, start_y, end_x, end_y):
     # ODsay API 호출 URL 생성
-    start_x, start_y = wgs84_to_epsg5179(start_lon, start_lat)
-    end_x, end_y = wgs84_to_epsg5179(end_lon, end_lat)
+    print(start_x,start_y,end_x,end_y)
     base_url = "https://api.odsay.com/v1/api/searchPubTransPathT"
     params = {
         "SX": start_x,
@@ -107,14 +103,17 @@ def get_transit_time(start_lon, start_lat, end_lon, end_lat):
         "apiKey": OD_SAY_API_KEY
     }
     encoded_params = urllib.parse.urlencode(params)
+    print(encoded_params)
     request_url = f"{base_url}?{encoded_params}"
-
+    print(request_url)
+    print(OD_SAY_API_KEY)
     try:
         response = requests.get(request_url)
         response.raise_for_status()  # Raise an error for bad status codes
 
         # Assuming the API response is JSON
         data = response.json()
+        print(data)
 
         # Extract transit time from the response
         transit_time = None
@@ -139,13 +138,13 @@ def find_best_station(stations, user_locations, factors):
     for station in stations:
         try:
             total_transit_time = 0
-            #for user_location in user_locations:
-                #transit_time = get_transit_time(user_location['lon'], user_location['lat'], station['x'], station['y'])
-                #print(transit_time)
-                #if transit_time:
-                    #total_transit_time += transit_time
-                #else:
-                    #total_transit_time += float('inf')  # If transit time cannot be fetched, assume it's very large
+            for user_location in user_locations:
+                transit_time = get_transit_time(user_location['lon'], user_location['lat'], station['x'], station['y'])
+                print(transit_time)
+                if transit_time:
+                    total_transit_time += transit_time
+                else:
+                    total_transit_time += float('inf')  # If transit time cannot be fetched, assume it's very large
 
             station_obj = Station.objects.get(station_name=station['station_name'])
             score = total_transit_time
