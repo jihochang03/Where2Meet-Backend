@@ -71,7 +71,7 @@ def find_nearest_stations_kakao(midpoint):
             }
             # 거리 필터링: 위도와 경도로부터 실제 거리를 계산하여 1000미터 이내의 역만 포함
             distance = calculate_distance(midpoint[0], midpoint[1], station['x'], station['y'])
-            if distance <= 10000:
+            if distance <= 16000:
                 stations.append(station)
                 print(station)
         return stations
@@ -138,13 +138,13 @@ def find_best_station(stations, user_locations, factors):
     for station in stations:
         try:
             total_transit_time = 0
-            #for user_location in user_locations:
-                #transit_time = get_transit_time(user_location['lon'], user_location['lat'], station['x'], station['y'])
-                #print(transit_time)
-                #if transit_time:
-                    #total_transit_time += transit_time
-                #else:
-                    #total_transit_time += float('inf')  # If transit time cannot be fetched, assume it's very large
+            for user_location in user_locations:
+                transit_time = get_transit_time(user_location['lon'], user_location['lat'], station['x'], station['y'])
+                print(transit_time)
+                if transit_time:
+                    total_transit_time += transit_time
+                else:
+                    total_transit_time += float('inf')  # If transit time cannot be fetched, assume it's very large
 
             station_obj = Station.objects.get(station_name=station['station_name'])
             score = total_transit_time
