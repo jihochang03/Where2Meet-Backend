@@ -138,13 +138,13 @@ def find_best_station(stations, user_locations, factors):
     for station in stations:
         try:
             total_transit_time = 0
-            for user_location in user_locations:
-                transit_time = get_transit_time(user_location['lon'], user_location['lat'], station['x'], station['y'])
-                print(transit_time)
-                if transit_time:
-                    total_transit_time += transit_time
-                else:
-                    total_transit_time += float('inf')  # If transit time cannot be fetched, assume it's very large
+            #for user_location in user_locations:
+                #transit_time = get_transit_time(user_location['lon'], user_location['lat'], station['x'], station['y'])
+                #print(transit_time)
+                #if transit_time:
+                    #total_transit_time += transit_time
+                #else:
+                    #total_transit_time += float('inf')  # If transit time cannot be fetched, assume it's very large
 
             station_obj = Station.objects.get(station_name=station['station_name'])
             score = total_transit_time
