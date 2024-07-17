@@ -38,8 +38,8 @@ environ.Env.read_env(
 SECRET_KEY =env('SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
-ALLOWED_HOSTS = ['*']
+DEBUG = False
+ALLOWED_HOSTS = ['.amazonaws.com', '127.0.0.1']
 
 REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES' : (
