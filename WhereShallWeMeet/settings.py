@@ -12,33 +12,46 @@ https://docs.djangoproject.com/en/5.0/ref/settings/
 
 from pathlib import Path
 import os
-import dj_database_url
-
-
+import environ
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+# Load environment variables
+env = environ.Env(
+    DEBUG=(bool, False)
+)
+environ.Env.read_env(
+    env_file=os.path.join(BASE_DIR, '.env')
+)
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-import os, environ
+SECRET_KEY = env('SECRET_KEY')
 
-env = environ.Env(
-    DEBUG=(bool, True)
-)
 
-environ.Env.read_env(
-    env_file=os.path.join(BASE_DIR, '.env')
-)
-### 여기까지 추가
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.mysql',
+#         'NAME': os.getenv('RDS_DB_NAME'),
+#         'USER': os.getenv('RDS_USERNAME'),
+#         'PASSWORD': os.getenv('RDS_PASSWORD'),
+#         'HOST': os.getenv('RDS_HOSTNAME'),
+#         'PORT': os.getenv('RDS_PORT'),
+#     }
+# }
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3',
+    }
+}
 
-### 변경
-SECRET_KEY =env('SECRET_KEY')
 
-# SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False
+
 ALLOWED_HOSTS = ['.ap-southeast-2.compute.amazonaws.com', '127.0.0.1']
 
 REST_FRAMEWORK = {
@@ -94,13 +107,6 @@ WSGI_APPLICATION = 'WhereShallWeMeet.wsgi.application'
 
 # Database
 # https://docs.djangoproject.com/en/5.0/ref/settings/#databases
-
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-    }
-}
 
 
 # Password validation
@@ -158,3 +164,5 @@ SWAGGER_SETTINGS = {
         'BearerAuth': []
     }]
 }
+
+
