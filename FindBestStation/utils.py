@@ -108,7 +108,7 @@ def get_transit_time(start_x, start_y, end_x, end_y):
     print(request_url)
     
     try:
-        response = requests.get(encoded_params)
+        response = requests.get(request_url)
         # response = requests.get(request_url)
         response.raise_for_status()  # Raise an error for bad status codes
         print(f"response={response}")
