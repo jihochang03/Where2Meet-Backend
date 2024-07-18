@@ -37,15 +37,12 @@ SECRET_KEY = env('SECRET_KEY')
 
 # DATABASES = {
 #     'default': {
-#         'ENGINE': 'django.db.backends.mysql',
+#         'ENGINE': 'django.db.backends.postgresql',
 #         'NAME': os.getenv('RDS_DB_NAME'),
 #         'USER': os.getenv('RDS_USERNAME'),
 #         'PASSWORD': os.getenv('RDS_PASSWORD'),
 #         'HOST': os.getenv('RDS_HOSTNAME'),
 #         'PORT': os.getenv('RDS_PORT'),
-#         'OPTIONS':{
-#             'init_command' : "SET sql_mode='STRICT_TRANS_TABLES'"
-#         }
 #     }
 # }
 

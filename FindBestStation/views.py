@@ -9,6 +9,52 @@ from .utils import calculate_midpoint, find_nearest_stations_kakao, find_best_st
 import requests
 import os
 from dotenv import load_dotenv
+import json
+from FindBestStation.models import Station  # Station 모델을 정의한 곳으로 경로를 수정해야 합니다.
+
+def load_stations_from_json(json_file):
+    with open(json_file, 'r', encoding='utf-8') as f:
+        data = json.load(f)
+
+        for entry in data:
+            fields = entry['fields']
+            station_code = fields['station_code']
+            station_name = fields['station_name']
+            x = fields['x']
+            y = fields['y']
+            factor_2 = fields['factor_2']
+            factor_3 = fields['factor_3']
+            factor_4 = fields['factor_4']
+            factor_5 = fields['factor_5']
+            factor_6 = fields['factor_6']
+            factor_7 = fields['factor_7']
+
+            # 이미 존재하는 역인지 확인
+            if Station.objects.filter(station_code=station_code).exists():
+                print(f"Station with code {station_code} already exists. Skipping...")
+                continue
+
+            # Station 객체 생성 및 저장
+            station = Station.objects.create(
+                station_code=station_code,
+                station_name=station_name,
+                x=x,
+                y=y,
+                factor_2=factor_2,
+                factor_3=factor_3,
+                factor_4=factor_4,
+                factor_5=factor_5,
+                factor_6=factor_6,
+                factor_7=factor_7
+            )
+
+            print(f"Station {station_name} created successfully.")
+
+# JSON 파일 경로
+json_file_path = 'factor.json'
+
+# JSON 데이터를 Django 모델에 로드
+load_stations_from_json(json_file_path)
 
 load_dotenv()
 KAKAO_API_KEY = os.getenv("KAKAO_API_KEY")
@@ -16,6 +62,7 @@ KAKAO_API_KEY = os.getenv("KAKAO_API_KEY")
 FORMAT = "json"
 search_url = f"https://dapi.kakao.com/v2/local/search/keyword.{FORMAT}"
 transcoord_url = f"https://dapi.kakao.com/v2/local/geo/transcoord.{FORMAT}"
+
 
 @swagger_auto_schema(
     method='post',
