@@ -134,6 +134,12 @@ def get_transit_time(start_x, start_y, end_x, end_y):
 
 def find_best_station(stations, user_locations, factors):
     station_scores = []
+    factor_2_weight = 1.5
+    factor_3_weight = 1.5
+    factor_4_weight = 1.5
+    factor_5_weight = 1.1
+    factor_6_weight = 1.1
+    factor_7_weight = 1.1
 
     for station in stations:
         try:
@@ -147,32 +153,31 @@ def find_best_station(stations, user_locations, factors):
                     total_transit_time += float('inf')  # If transit time cannot be fetched, assume it's very large
 
             station_obj = Station.objects.get(station_name=station['station_name'])
-            score = total_transit_time
-            factor_2_weight = 1.0
-            factor_3_weight = 1.0
-            factor_4_weight = 1.0
-            factor_5_weight = 1.0
-            factor_6_weight = 1.0
-            factor_7_weight = 1.0
 
-            # 각 factor에 대한 가중치를 추가
+            final_score = 0.0
             for factor in factors:
                 factor_attr = f'factor_{factor}'
                 factor_value = getattr(station_obj, factor_attr, 0)
+            
                 if factor == 2:
-                    score += factor_value * factor_2_weight
+                    final_score += factor_value * factor_2_weight
                 elif factor == 3:
-                    score += factor_value * factor_3_weight
+                    final_score += factor_value * factor_3_weight
                 elif factor == 4:
-                    score += factor_value * factor_4_weight
+                    final_score += factor_value * factor_4_weight
                 elif factor == 5:
-                    score += factor_value * factor_5_weight
+                    final_score += factor_value * factor_5_weight
                 elif factor == 6:
-                    score += factor_value * factor_6_weight
+                    final_score += factor_value * factor_6_weight
                 elif factor == 7:
-                    score += factor_value * factor_7_weight
+                    final_score += factor_value * factor_7_weight
+            # total_transit_time이 0인 경우를 처리하여 최종 점수 계산
+            if total_transit_time > 0:
+                final_score = 1 / final_score * total_transit_time
+            else:
+                final_score = float('inf')
 
-            station_scores.append((station, score))
+            station_scores.append((station, final_score))
 
         except Station.DoesNotExist:
             print(f"Station with cleaned name {station['station_name']} does not exist.")
