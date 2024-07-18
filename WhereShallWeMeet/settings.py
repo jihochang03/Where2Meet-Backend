@@ -17,6 +17,7 @@ import pymysql
 pymysql.install_as_MySQLdb()
 
 
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -33,8 +34,6 @@ environ.Env.read_env(
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = env('SECRET_KEY')
-Access_key_ID = env('Access_key_ID')
-SECRET_ACCESS_KEY = env('SECRET_ACCESS_KEY')
 
 # DATABASES = {
 #     'default': {
@@ -79,20 +78,7 @@ INSTALLED_APPS = [
     'CGPT',
     'FindBestStation',
     'drf_yasg',
-    'storages',
 ]
-AWS_STORAGE_BUCKET_NAME = "whereshallmeetbucket"
-AWS_ACCESS_KEY_ID = env('Access_key_ID')
-AWS_SECRET_ACCESS_KEY = env('SECRET_ACCESS_KEY')
-
-
-DEFAULT_FILE_STORAGE = "storages.backends.s3boto3.S3Boto3Storage"
-
-STATICFILES_STORAGE = "storages.backends.s3boto3.S3Boto3Storage"
-
-AWS_S3_CUSTOM_DOMAIN = AWS_STORAGE_BUCKET_NAME + ".s3.ap-southeast-2.amazonaws.com"
-AWS_S3_FILE_OVERWRITE = False
-AWS_QUERYSTRING_AUTH = False
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -164,10 +150,7 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.0/howto/static-files/
 
 STATIC_URL = '/static/'
-STATICFILES_DIRS = [
-	BASE_DIR / 'static',
-]
-STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.0/ref/settings/#default-auto-field
