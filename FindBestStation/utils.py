@@ -109,12 +109,10 @@ def get_transit_time(start_x, start_y, end_x, end_y):
     
     try:
         response = requests.get(request_url)
-        # response = requests.get(request_url)
         response.raise_for_status()  # Raise an error for bad status codes
         print(f"response={response}")
         # Assuming the API response is JSON
         data = response.json()
-        print(data)
 
         # Extract transit time from the response
         transit_time = None
@@ -126,8 +124,9 @@ def get_transit_time(start_x, start_y, end_x, end_y):
                 if duration < min_duration:
                     min_duration = duration
             transit_time = min_duration
-        
+        print(transit_time)
         return transit_time
+    
 
     except requests.exceptions.RequestException as e:
         print(f"Error fetching transit time: {e}")
@@ -141,7 +140,7 @@ def find_best_station(stations, user_locations, factors):
             total_transit_time = 0
             for user_location in user_locations:
                 transit_time = get_transit_time(user_location['lon'], user_location['lat'], station['x'], station['y'])
-                print(transit_time)
+                print(f"transit_time={transit_time}")
                 if transit_time:
                     total_transit_time += transit_time
                 else:
