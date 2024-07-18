@@ -103,9 +103,10 @@ def get_transit_time(start_x, start_y, end_x, end_y):
         "apiKey": OD_SAY_API_KEY
     }
     encoded_params = urllib.parse.urlencode(params)
-    print(f"encodedparams={encoded_params}")
-    # request_url = f"{base_url}?{encoded_params}"
-    # print(request_url)
+    # print(f"encodedparams={encoded_params}")
+    request_url = f"{base_url}?{encoded_params}"
+    print(request_url)
+    
     try:
         response = requests.get(encoded_params)
         # response = requests.get(request_url)
