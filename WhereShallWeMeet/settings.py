@@ -58,7 +58,7 @@ DATABASES = {
 
 DEBUG = False
 
-ALLOWED_HOSTS = ['.ap-southeast-2.compute.amazonaws.com', '127.0.0.1']
+ALLOWED_HOSTS = ['*']
 
 REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES' : (
