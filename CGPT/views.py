@@ -13,12 +13,12 @@ openai.api_key = os.getenv("OPENAI_API_KEY")
 
 # Factor 키워드 매핑
 factor_keywords = {
-    'factor_2': 'mz세대의 핫플',
-    'factor_3': '밥집',
-    'factor_4': '카페',
-    'factor_5': '술집',
-    'factor_6': '액티비티',
-    'factor_7': '쇼핑',
+    '2': 'mz세대의 핫플',
+    '3': '밥집',
+    '4': '카페',
+    '5': '술집',
+    '6': '액티비티',
+    '7': '쇼핑',
 }
 
 # chatgpt에 넣기
@@ -61,8 +61,9 @@ class QueryView(APIView):
         print(factors)
         if not station_name or not factors:
             return Response({'error': 'station_name and at least one factor are required'}, status=status.HTTP_400_BAD_REQUEST)
-
+        print(factors)
         factor_keywords_list = [factor_keywords[factor] for factor in factors]
+        print(factor_keywords_list)
         factors_string = ', '.join(factor_keywords_list)
         prompt = f"약속장소로 '{station_name}'이 적합한 이유를 '{factors_string}' 관점에서 한줄로 설명해줘."
         print(prompt)

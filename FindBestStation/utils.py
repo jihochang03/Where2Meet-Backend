@@ -7,14 +7,13 @@ from pyproj import Transformer, CRS
 import requests
 import pandas as pd
 from bs4 import BeautifulSoup
-
 import urllib.parse
 
 load_dotenv()
 KAKAO_API_KEY = os.getenv("KAKAO_API_KEY")
 NAVER_CLIENT_ID = os.getenv("NAVER_CLIENT_ID")
 NAVER_CLIENT_SECRET = os.getenv("NAVER_CLIENT_SECRET")
-
+OD_SAY_API_KEY = os.getenv("OD_SAY_API_KEY")
 FORMAT = "json"
 search_url = f"https://dapi.kakao.com/v2/local/search/keyword.{FORMAT}"
 transcoord_url = f"https://dapi.kakao.com/v2/local/geo/transcoord.{FORMAT}"  # target URL
@@ -71,7 +70,7 @@ def find_nearest_stations_kakao(midpoint):
             }
             # 거리 필터링: 위도와 경도로부터 실제 거리를 계산하여 1000미터 이내의 역만 포함
             distance = calculate_distance(midpoint[0], midpoint[1], station['x'], station['y'])
-            if distance <= 10000:
+            if distance <= 16000:
                 stations.append(station)
                 print(station)
         return stations
@@ -91,13 +90,9 @@ def calculate_distance(lat1, lon1, lat2, lon2):
     print(distance)
     return distance
 
-# ODsay API key 설정
-OD_SAY_API_KEY = os.getenv("OD_SAY_API_KEY")
-
-def get_transit_time(start_lon, start_lat, end_lon, end_lat):
+def get_transit_time(start_x, start_y, end_x, end_y):
     # ODsay API 호출 URL 생성
-    start_x, start_y = wgs84_to_epsg5179(start_lon, start_lat)
-    end_x, end_y = wgs84_to_epsg5179(end_lon, end_lat)
+    print(start_x,start_y,end_x,end_y)
     base_url = "https://api.odsay.com/v1/api/searchPubTransPathT"
     params = {
         "SX": start_x,
@@ -107,12 +102,14 @@ def get_transit_time(start_lon, start_lat, end_lon, end_lat):
         "apiKey": OD_SAY_API_KEY
     }
     encoded_params = urllib.parse.urlencode(params)
+    # print(f"encodedparams={encoded_params}")
     request_url = f"{base_url}?{encoded_params}"
-
+    print(request_url)
+    
     try:
         response = requests.get(request_url)
         response.raise_for_status()  # Raise an error for bad status codes
-
+        print(f"response={response}")
         # Assuming the API response is JSON
         data = response.json()
 
@@ -126,8 +123,9 @@ def get_transit_time(start_lon, start_lat, end_lon, end_lat):
                 if duration < min_duration:
                     min_duration = duration
             transit_time = min_duration
-        
+        print(transit_time)
         return transit_time
+    
 
     except requests.exceptions.RequestException as e:
         print(f"Error fetching transit time: {e}")
@@ -135,45 +133,50 @@ def get_transit_time(start_lon, start_lat, end_lon, end_lat):
 
 def find_best_station(stations, user_locations, factors):
     station_scores = []
+    factor_2_weight = 1.5
+    factor_3_weight = 1.5
+    factor_4_weight = 1.5
+    factor_5_weight = 1.1
+    factor_6_weight = 1.1
+    factor_7_weight = 1.1
 
     for station in stations:
         try:
             total_transit_time = 0
-            #for user_location in user_locations:
-                #transit_time = get_transit_time(user_location['lon'], user_location['lat'], station['x'], station['y'])
-                #print(transit_time)
-                #if transit_time:
-                    #total_transit_time += transit_time
-                #else:
-                    #total_transit_time += float('inf')  # If transit time cannot be fetched, assume it's very large
+            for user_location in user_locations:
+                transit_time = get_transit_time(user_location['lon'], user_location['lat'], station['x'], station['y'])
+                print(f"transit_time={transit_time}")
+                if transit_time:
+                    total_transit_time += transit_time
+                else:
+                    total_transit_time += float('inf')  # If transit time cannot be fetched, assume it's very large
 
             station_obj = Station.objects.get(station_name=station['station_name'])
-            score = total_transit_time
-            factor_2_weight = 1.0
-            factor_3_weight = 1.0
-            factor_4_weight = 1.0
-            factor_5_weight = 1.0
-            factor_6_weight = 1.0
-            factor_7_weight = 1.0
 
-            # 각 factor에 대한 가중치를 추가
+            final_score = 0.0
             for factor in factors:
                 factor_attr = f'factor_{factor}'
                 factor_value = getattr(station_obj, factor_attr, 0)
+            
                 if factor == 2:
-                    score += factor_value * factor_2_weight
+                    final_score += factor_value * factor_2_weight
                 elif factor == 3:
-                    score += factor_value * factor_3_weight
+                    final_score += factor_value * factor_3_weight
                 elif factor == 4:
-                    score += factor_value * factor_4_weight
+                    final_score += factor_value * factor_4_weight
                 elif factor == 5:
-                    score += factor_value * factor_5_weight
+                    final_score += factor_value * factor_5_weight
                 elif factor == 6:
-                    score += factor_value * factor_6_weight
+                    final_score += factor_value * factor_6_weight
                 elif factor == 7:
-                    score += factor_value * factor_7_weight
+                    final_score += factor_value * factor_7_weight
+            # total_transit_time이 0인 경우를 처리하여 최종 점수 계산
+            if total_transit_time > 0:
+                final_score = 1 / final_score * total_transit_time
+            else:
+                final_score = float('inf')
 
-            station_scores.append((station, score))
+            station_scores.append((station, final_score))
 
         except Station.DoesNotExist:
             print(f"Station with cleaned name {station['station_name']} does not exist.")
