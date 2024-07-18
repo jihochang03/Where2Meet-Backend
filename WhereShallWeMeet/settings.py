@@ -82,6 +82,9 @@ INSTALLED_APPS = [
     'storages',
 ]
 AWS_STORAGE_BUCKET_NAME = "whereshallmeetbucket"
+AWS_ACCESS_KEY_ID = env('Access_key_ID')
+AWS_SECRET_ACCESS_KEY = env('SECRET_ACCESS_KEY')
+
 
 DEFAULT_FILE_STORAGE = "storages.backends.s3boto3.S3Boto3Storage"
 
