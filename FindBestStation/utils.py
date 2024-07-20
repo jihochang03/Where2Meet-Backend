@@ -210,6 +210,7 @@ def find_best_station(stations, user_locations, factors):
             for user_location in user_locations:
                 transit_time = get_transit_time(user_location['lon'], user_location['lat'], station['x'], station['y'])
                 print(f"station={station}")
+                print(f"user_location={user_location}")
                 print(f"transit_time={transit_time}")
                 if transit_time:
                     total_transit_time += transit_time
@@ -226,24 +227,30 @@ def find_best_station(stations, user_locations, factors):
             
                 if factor == 2:
                     final_score += factor_value * factor_2_weight
+                    print('factor_2 check')
                 elif factor == 3:
                     final_score += factor_value * factor_3_weight
+                    print('factor_3 check')
                 elif factor == 4:
                     final_score += factor_value * factor_4_weight
+                    print('factor_4 check')
                 elif factor == 5:
                     final_score += factor_value * factor_5_weight
+                    print('factor_5 check')
                 elif factor == 6:
                     final_score += factor_value * factor_6_weight
+                    print('factor_6 check')
                 elif factor == 7:
                     final_score += factor_value * factor_7_weight
+                    print('factor_7 check')
             # total_transit_time이 0인 경우를 처리하여 최종 점수 계산
             if total_transit_time > 0:
-                final_score = 1 / final_score * total_transit_time
+                station_final_score = total_transit_time/final_score
             else:
-                final_score = float('inf')
+                station_final_score = float('inf')
 
-            station_scores.append((station, final_score))
-            print(f"station:{station}, final_score={final_score}")
+            station_scores.append((station, station_final_score))
+            print(f"station:{station}, station_final_score={station_final_score}")
 
         except Station.DoesNotExist:
             print(f"Station with cleaned name {station['station_name']} does not exist.")
