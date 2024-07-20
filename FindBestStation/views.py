@@ -174,7 +174,7 @@ def find_optimal_station(request):
             
             result = {
                 "station_name": best_station['station_name'],
-                "coordinates": {"lon": best_station['x'], "lat": best_station['y']},
+                "coordinates": {"lon": best_station['y'], "lat": best_station['x']},
                 "factors": factors,
                 "chatgpt_response_pc": chatgpt_response_pc,  # Add the response from the URL
                 "chatgpt_response_mobile": chatgpt_response_mobile
