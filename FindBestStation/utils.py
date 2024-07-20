@@ -47,7 +47,8 @@ def is_within_seoul(lon, lat):
         if documents:
             region_2depth_name = documents[0].get('region_2depth_name', '')
             if '서울' in region_2depth_name:
-                return True
+                return 
+    print("서울 아님")
     return False
 
 def find_nearest_seoul(lon, lat):
