@@ -49,7 +49,7 @@ def is_within_seoul(lon, lat):
             print(region_1depth_name)
             if '서울특별시' in region_1depth_name:
                 return True
-    print("서울 아님")
+    # print("서울 아님")
     return False
 
 def find_nearest_seoul(lon, lat):
@@ -78,19 +78,19 @@ def find_nearest_seoul(lon, lat):
         raise ValueError("Error while searching for nearest Seoul location.")
 
 def calculate_midpoint(locations):
-    print(locations)
+    # print(locations)
 
     # WGS84 좌표를 EPSG:5179로 변환
     epsg5179_coords = [wgs84_to_epsg5179(loc['lon'], loc['lat']) for loc in locations]
-    print(epsg5179_coords)
+    # print(epsg5179_coords)
     # 중간점 계산
     midpoint_x = sum(coord[0] for coord in epsg5179_coords) / len(epsg5179_coords)
     midpoint_y = sum(coord[1] for coord in epsg5179_coords) / len(epsg5179_coords)
-    print(f"midpoint_x: {midpoint_x}, midpoint_y: {midpoint_y}")
+    # print(f"midpoint_x: {midpoint_x}, midpoint_y: {midpoint_y}")
 
     # 중간점을 다시 WGS84로 변환
     midpoint_lat, midpoint_lon = epsg5179_to_wgs84(midpoint_y, midpoint_x)
-    print(f"midpoint_lon: {midpoint_lon}, midpoint_lat: {midpoint_lat}")
+    # print(f"midpoint_lon: {midpoint_lon}, midpoint_lat: {midpoint_lat}")
 
     # 중간점이 서울 내에 있는지 확인하고, 아니면 가장 가까운 서울 내 위치로 이동
     if not is_within_seoul(midpoint_lon, midpoint_lat):
@@ -134,23 +134,23 @@ def find_nearest_stations_kakao(midpoint):
                 }
                 stations.append(station)
                 added_station_names.add(station_name_cleaned)
-                print(station)
+                # print(station)
         return stations
     else:
         print(f"Error in processing request: {response.status_code}")
         return []
 
-def calculate_distance(lat1, lon1, lat2, lon2):
-    from math import radians, cos, sin, sqrt, atan2
+# def calculate_distance(lat1, lon1, lat2, lon2):
+#     from math import radians, cos, sin, sqrt, atan2
     
-    R = 6371000  # 지구 반지름 (미터)
-    dlat = radians(lat2 - lat1)
-    dlon = radians(lon2 - lon1)
-    a = sin(dlat / 2) * sin(dlat / 2) + cos(radians(lat1)) * cos(radians(lat2)) * sin(dlon / 2) * sin(dlon / 2)
-    c = 2 * atan2(sqrt(a), sqrt(1 - a))
-    distance = R * c
-    print(distance)
-    return distance
+#     R = 6371000  # 지구 반지름 (미터)
+#     dlat = radians(lat2 - lat1)
+#     dlon = radians(lon2 - lon1)
+#     a = sin(dlat / 2) * sin(dlat / 2) + cos(radians(lat1)) * cos(radians(lat2)) * sin(dlon / 2) * sin(dlon / 2)
+#     c = 2 * atan2(sqrt(a), sqrt(1 - a))
+#     distance = R * c
+#     print(distance)
+#     return distance
 
 def get_transit_time(start_x, start_y, end_x, end_y):
     # ODsay API 호출 URL 생성
@@ -184,7 +184,7 @@ def get_transit_time(start_x, start_y, end_x, end_y):
                 if duration < min_duration:
                     min_duration = duration
             transit_time = min_duration
-        print(transit_time)
+        # print(transit_time)
         return transit_time
     
 

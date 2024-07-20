@@ -68,9 +68,9 @@ class QueryView(APIView):
         factors_string = ', '.join(factor_keywords_list)
     
         if view_type == 'pc':
-            prompt = f"약속장소로 '{station_name}'이 적합한 이유를 '{factors_string}' 관점에서 2~3문장으로 설명해줘. 예를 들어 친구에게 추천하듯 자연스럽게 말해줘."
+            prompt = f"만나는 장소로 '{station_name}'이 적합한 이유를 '{factors_string}' 관점에서 2~3문장으로 설명해줘. 꼭 친구에게 추천하듯 자연스럽게 말해줘."
         else:  # 모바일 버전
-            prompt = f"약속장소로 '{station_name}'이 적합한 이유를 '{factors_string}' 관점에서 한 문장으로 요약해줘. 친구에게 간단히 추천하듯 말해줘."
+            prompt = f"만나는 장소로 '{station_name}'이 적합한 이유를 '{factors_string}' 관점에서 한 문장으로 요약해줘. 꼭 친구에게 간단히 추천하듯 말해줘."
     
         response = get_completion(prompt)
         return Response({'response': response})
