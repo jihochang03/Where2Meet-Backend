@@ -134,7 +134,7 @@ def find_optimal_station(request):
 
     midpoint = calculate_midpoint(locations)
     if midpoint == (0, 0):
-        return JsonResponse({'error': 'Midpoint is not within 50km of Seoul and cannot be adjusted to a Seoul location.'}, status=400)
+        return JsonResponse({'error': 'Midpoint is not within 20km of Seoul and cannot be adjusted to a Seoul location.'}, status=400)
     print(f'midpoint: {midpoint}')
 
     # Step 3: 중간 지점에서 20km 반경의 지하철역 확인
@@ -155,22 +155,29 @@ def find_optimal_station(request):
         results = []
         for best_station in best_stations:
             factors_query = '&'.join([f'factor={factor}' for factor in factors])
-            redirect_url = f"http://ec2-52-64-207-15.ap-southeast-2.compute.amazonaws.com:8080/api/CGPT/query/?station_name={best_station['station_name']}&{factors_query}"
-            
+            redirect_url_pc = f"http://ec2-52-64-207-15.ap-southeast-2.compute.amazonaws.com:8080/api/CGPT/query/?station_name={best_station['station_name']}&{factors_query}/view_type=pc"
+            redirect_url_mobile = f"http://ec2-52-64-207-15.ap-southeast-2.compute.amazonaws.com:8080/api/CGPT/query/?station_name={best_station['station_name']}&{factors_query}/view_type=mobile"
             # Make a request to the redirect_url
             try:
-                response = requests.get(redirect_url)
+                response = requests.get(redirect_url_pc)
                 response.raise_for_status()
-                chatgpt_response = response.json()
+                chatgpt_response_pc = response.json()
             except requests.exceptions.RequestException as e:
-                chatgpt_response = {"error": str(e)}
+                chatgpt_response_pc = {"error": str(e)}
+                
+            try:
+                response = requests.get(redirect_url_pc)
+                response.raise_for_status()
+                chatgpt_response_mobile = response.json()
+            except requests.exceptions.RequestException as e:
+                chatgpt_response_mobile = {"error": str(e)}    
             
             result = {
                 "station_name": best_station['station_name'],
                 "coordinates": {"lon": best_station['x'], "lat": best_station['y']},
-                "redirect_url": redirect_url,
                 "factors": factors,
-                "chatgpt_response": chatgpt_response  # Add the response from the URL
+                "chatgpt_response_pc": chatgpt_response_pc,  # Add the response from the URL
+                "chatgpt_response_mobile": chatgpt_response_mobile
             }
             results.append(result)
             # print(best_station['x'], best_station['y'])

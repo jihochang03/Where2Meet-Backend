@@ -70,7 +70,7 @@ class QueryView(APIView):
         if view_type == 'pc':
             prompt = f"만나는 장소로 '{station_name}'이 적합한 이유를 '{factors_string}' 관점에서 2~3문장으로 설명해줘. 꼭 고객한테 추천하듯 자연스럽지만 존댓말로 말해주고 그 역의 특성이나 역 주변 것들도 함께 언급해주면 좋겠어."
         else:  # 모바일 버전
-            prompt = f"만나는 장소로 '{station_name}'이 적합한 이유를 '{factors_string}' 관점에서 한 문장으로 요약해줘. 꼭 고객한테 추천하듯 자연스럽지만 존댓말로 말해주고 간단하게 말해주고 그 역의 특성이나 역 주변 것들도 함께 언급해주면 좋겠어."
+            prompt = f"만나는 장소로 '{station_name}'이 적합한 이유를 '{factors_string}' 관점에서 한 문장으로 요약해줘. 꼭 고객한테 추천하듯 자연스럽지만 존댓말로 말해주고 그 역의 특성이나 역 주변 것들도 함께 언급해주면 좋겠어."
     
         response = get_completion(prompt)
         return Response({'response': response})
