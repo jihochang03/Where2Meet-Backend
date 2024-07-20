@@ -155,8 +155,8 @@ def find_optimal_station(request):
         results = []
         for best_station in best_stations:
             factors_query = '&'.join([f'factor={factor}' for factor in factors])
-            redirect_url_pc = f"http://ec2-52-64-207-15.ap-southeast-2.compute.amazonaws.com:8080/api/CGPT/query/?station_name={best_station['station_name']}&{factors_query}&view_type=pc"
-            redirect_url_mobile = f"http://ec2-52-64-207-15.ap-southeast-2.compute.amazonaws.com:8080/api/CGPT/query/?station_name={best_station['station_name']}&{factors_query}&view_type=mobile"
+            redirect_url_pc = f"http://ec2-52-64-207-15.ap-southeast-2.compute.amazonaws.com:8080/api/CGPT/query/?station_name={best_station['station_name']}&{factors_query}&view_type='pc'"
+            redirect_url_mobile = f"http://ec2-52-64-207-15.ap-southeast-2.compute.amazonaws.com:8080/api/CGPT/query/?station_name={best_station['station_name']}&{factors_query}&view_type='mobile'"
             # Make a request to the redirect_url
             try:
                 response = requests.get(redirect_url_pc)
