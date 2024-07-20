@@ -228,22 +228,22 @@ def find_best_station(stations, user_locations, factors):
                 factor_value = getattr(station_obj, factor_attr, 0)
                 print(f"factor_value={factor_value}")
                 if factor == 2:
-                    final_score += factor_value * factor_2_weight
+                    final_score += factor_value * float(factor_2_weight)
                     print('factor_2 check')
                 elif factor == 3:
-                    final_score += factor_value * factor_3_weight
+                    final_score += factor_value * float(factor_3_weight)
                     print('factor_3 check')
                 elif factor == 4:
-                    final_score += factor_value * factor_4_weight
+                    final_score += factor_value * float(factor_4_weight)
                     print('factor_4 check')
                 elif factor == 5:
-                    final_score += factor_value * factor_5_weight
+                    final_score += factor_value * float(factor_5_weight)
                     print('factor_5 check')
                 elif factor == 6:
-                    final_score += factor_value * factor_6_weight
+                    final_score += factor_value * float(factor_6_weight)
                     print('factor_6 check')
                 elif factor == 7:
-                    final_score += factor_value * factor_7_weight
+                    final_score += factor_value * float(factor_7_weight)
                     print('factor_7 check')
             # total_transit_time이 0인 경우를 처리하여 최종 점수 계산
             if total_transit_time > 0:
