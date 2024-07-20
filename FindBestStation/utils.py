@@ -20,7 +20,7 @@ transcoord_url = f"https://dapi.kakao.com/v2/local/geo/transcoord.{FORMAT}"  # t
 
 
 # EPSG:5179 좌표계 = 네이버 지도 좌표계
-crs_epsg5179 = CRS.from_epsg(3857)
+crs_epsg5179 = CRS.from_epsg(5179)
 # WGS84 좌표계 = 카카오맵 좌표계
 crs_wgs84 = CRS.from_epsg(4326)
 
