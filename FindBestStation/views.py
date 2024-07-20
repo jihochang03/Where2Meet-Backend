@@ -166,7 +166,7 @@ def find_optimal_station(request):
                 chatgpt_response_pc = {"error": str(e)}
                 
             try:
-                response = requests.get(redirect_url_pc)
+                response = requests.get(redirect_url_mobile)
                 response.raise_for_status()
                 chatgpt_response_mobile = response.json()
             except requests.exceptions.RequestException as e:
