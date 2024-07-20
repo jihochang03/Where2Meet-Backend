@@ -113,7 +113,7 @@ def find_optimal_station(request):
         locations = request.data.get('locations', [])
         factors = request.data.get('factors', [])
         try:
-            locations = [{'lon': lat, 'lat': lon} for lon, lat in locations]
+            locations = [{'lon': loc['lat'], 'lat': loc['lon']} for loc in locations]
             factors = [int(factor) for factor in factors]
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=400)
