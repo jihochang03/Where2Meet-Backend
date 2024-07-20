@@ -47,8 +47,8 @@ def is_within_seoul(lon, lat):
         if documents:
             region_1depth_name = documents[0].get('region_1depth_name', '')
             print(region_1depth_name)
-            if '서울' in region_1depth_name:
-                return 
+            if '서울특별시' in region_1depth_name:
+                return True
     print("서울 아님")
     return False
 
