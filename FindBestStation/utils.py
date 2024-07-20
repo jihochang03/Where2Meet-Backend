@@ -155,7 +155,6 @@ def calculate_distance(lat1, lon1, lat2, lon2):
 
 def get_transit_time(start_x, start_y, end_x, end_y):
     # ODsay API 호출 URL 생성
-    print(start_x,start_y,end_x,end_y)
     base_url = "https://api.odsay.com/v1/api/searchPubTransPathT"
     params = {
         "SX": start_x,
@@ -218,8 +217,10 @@ def find_best_station(stations, user_locations, factors):
                 else:
                     total_transit_time += float('inf')  # If transit time cannot be fetched, assume it's very large
                     print('no_transit')
+                    
             station_obj = Station.objects.get(station_name=station['station_name'])
-
+            print(station_obj)
+            
             final_score = 1.0
             for factor in factors:
                 factor_attr = f'factor_{factor}'
