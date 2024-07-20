@@ -133,7 +133,7 @@ def find_optimal_station(request):
         return JsonResponse({'error': 'Up to 6 factors can be provided.'}, status=400)
 
     midpoint = calculate_midpoint(locations)
-    # print(midpoint)
+    print(f'midpoint: {midpoint}')
 
     # Step 3: 중간 지점에서 20km 반경의 지하철역 확인
     nearest_stations = find_nearest_stations_kakao(midpoint)
@@ -145,7 +145,7 @@ def find_optimal_station(request):
     print(f"nearest_stations: {nearest_stations}")
     # print(f"locations: {locations}")
     # print(f"factors: {factors}")
-    # print("--------------------------------")
+    print("--------------------------------")
     
     best_stations = find_best_station(nearest_stations, locations, factors)
 
