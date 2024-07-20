@@ -80,7 +80,7 @@ def calculate_midpoint(locations):
 
     # WGS84 좌표를 EPSG:5179로 변환
     epsg5179_coords = [wgs84_to_epsg5179(loc['lon'], loc['lat']) for loc in locations]
-
+    print(epsg5179_coords)
     # 중간점 계산
     midpoint_x = sum(coord[0] for coord in epsg5179_coords) / len(epsg5179_coords)
     midpoint_y = sum(coord[1] for coord in epsg5179_coords) / len(epsg5179_coords)
