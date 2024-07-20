@@ -116,26 +116,25 @@ def find_nearest_stations_kakao(midpoint):
         "y": midpoint[1],  # 위도
         "radius": 20000,
         "sort": "distance",
-        # "category_group_code": "SW8",
     }
     
     response = requests.get(place_search_url, headers=headers, params=params)
     if response.status_code == 200:
         data = response.json()
         stations = []
+        added_station_names = set()  # 중복 역명을 체크하기 위한 집합
         for document in data['documents']:
             station_name_cleaned = document['place_name'].split(' ')[0]
-            station = {
-                'station_code': document['id'],
-                'station_name': station_name_cleaned,
-                'x': float(document['x']),
-                'y': float(document['y'])
-            }
-            # 거리 필터링: 위도와 경도로부터 실제 거리를 계산하여 1000미터 이내의 역만 포함
-            # distance = calculate_distance(midpoint[0], midpoint[1], station['x'], station['y'])
-            # if distance <= 16000:
-            stations.append(station)
-            print(station)
+            if station_name_cleaned not in added_station_names:
+                station = {
+                    'station_code': document['id'],
+                    'station_name': station_name_cleaned,
+                    'x': float(document['x']),
+                    'y': float(document['y'])
+                }
+                stations.append(station)
+                added_station_names.add(station_name_cleaned)
+                print(station)
         return stations
     else:
         print(f"Error in processing request: {response.status_code}")
