@@ -115,8 +115,8 @@ def find_nearest_stations_kakao(midpoint):
     }
     params = {
         "query": "지하철역",
-        "x": midpoint[1],  # 경도
-        "y": midpoint[0],  # 위도
+        "x": midpoint[0],  # 경도
+        "y": midpoint[1],  # 위도
         "radius": 20000,
         "sort": "distance",
     }
@@ -132,8 +132,8 @@ def find_nearest_stations_kakao(midpoint):
                 station = {
                     'station_code': document['id'],
                     'station_name': station_name_cleaned,
-                    'x': float(document['x']),
-                    'y': float(document['y'])
+                    'x': float(document['y']),
+                    'y': float(document['x'])
                 }
                 stations.append(station)
                 added_station_names.add(station_name_cleaned)
@@ -209,7 +209,7 @@ def find_best_station(stations, user_locations, factors):
         try:
             total_transit_time = 0
             for user_location in user_locations:
-                transit_time = get_transit_time(user_location['lon'], user_location['lat'], station['x'], station['y'])
+                transit_time = get_transit_time(user_location['lat'], user_location['lon'], station['x'], station['y'])
                 print(f"station={station}")
                 print(f"user_location={user_location}")
                 print(f"transit_time={transit_time}")
