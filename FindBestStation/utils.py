@@ -99,7 +99,7 @@ def calculate_midpoint(locations):
             print(e)
             raise ValueError("Midpoint is not within 50km of Seoul and cannot be adjusted to a Seoul location.")
 
-    return midpoint_lon, midpoint_lat
+    return midpoint_lat, midpoint_lon
 
 
 place_search_url = f"https://dapi.kakao.com/v2/local/search/keyword.{FORMAT}"
