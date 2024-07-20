@@ -224,8 +224,9 @@ def find_best_station(stations, user_locations, factors):
             final_score = 1.0
             for factor in factors:
                 factor_attr = f'factor_{factor}'
+                print(f"factor_attr={factor_attr}")
                 factor_value = getattr(station_obj, factor_attr, 0)
-            
+                print(f"factor_value={factor_value}")
                 if factor == 2:
                     final_score += factor_value * factor_2_weight
                     print('factor_2 check')
