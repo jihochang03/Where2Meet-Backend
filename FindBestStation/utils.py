@@ -172,7 +172,7 @@ def get_transit_time(start_x, start_y, end_x, end_y):
     try:
         response = requests.get(request_url)
         response.raise_for_status()  # Raise an error for bad status codes
-        print(f"response={response}")
+        # print(f"response={response}")
         # Assuming the API response is JSON
         data = response.json()
 
@@ -209,6 +209,7 @@ def find_best_station(stations, user_locations, factors):
             total_transit_time = 0
             for user_location in user_locations:
                 transit_time = get_transit_time(user_location['lon'], user_location['lat'], station['x'], station['y'])
+                print(f"station={station}")
                 print(f"transit_time={transit_time}")
                 if transit_time:
                     total_transit_time += transit_time
@@ -242,6 +243,7 @@ def find_best_station(stations, user_locations, factors):
                 final_score = float('inf')
 
             station_scores.append((station, final_score))
+            print(f"station:{station}, final_score={final_score}")
 
         except Station.DoesNotExist:
             print(f"Station with cleaned name {station['station_name']} does not exist.")
