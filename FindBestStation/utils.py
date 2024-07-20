@@ -59,7 +59,7 @@ def find_nearest_seoul(lon, lat):
         "query": "서울",
         "x": lon,
         "y": lat,
-        "radius": 100000,  # 50km 내에서 검색
+        "radius": 20000,  # 50km 내에서 검색
         "sort": "distance"
     }
     
@@ -99,7 +99,7 @@ def calculate_midpoint(locations):
             print(f"Adjusted midpoint_lon: {midpoint_lon}, midpoint_lat: {midpoint_lat}")
         except ValueError as e:
             print(e)
-            raise ValueError("Midpoint is not within 50km of Seoul and cannot be adjusted to a Seoul location.")
+            return 0, 0
 
     return midpoint_lon, midpoint_lat
 
