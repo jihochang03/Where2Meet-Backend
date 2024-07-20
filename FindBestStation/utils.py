@@ -45,8 +45,9 @@ def is_within_seoul(lon, lat):
         data = response.json()
         documents = data.get('documents', [])
         if documents:
-            region_2depth_name = documents[0].get('region_2depth_name', '')
-            if '서울' in region_2depth_name:
+            region_1depth_name = documents[0].get('region_1depth_name', '')
+            print(region_1depth_name)
+            if '서울' in region_1depth_name:
                 return 
     print("서울 아님")
     return False
