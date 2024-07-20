@@ -155,12 +155,22 @@ def find_optimal_station(request):
         results = []
         for best_station in best_stations:
             factors_query = '&'.join([f'factor={factor}' for factor in factors])
-            redirect_url = f"http://ec2-52-64-207-15.ap-southeast-2.compute.amazonaws.com:8080/api/CGPT/query/?station_name='{best_station["station_name"]}'&{factors_query}"
+            redirect_url = f"http://ec2-52-64-207-15.ap-southeast-2.compute.amazonaws.com:8080/api/CGPT/query/?station_name={best_station['station_name']}&{factors_query}"
+            
+            # Make a request to the redirect_url
+            try:
+                response = requests.get(redirect_url)
+                response.raise_for_status()
+                chatgpt_response = response.json()
+            except requests.exceptions.RequestException as e:
+                chatgpt_response = {"error": str(e)}
+            
             result = {
                 "station_name": best_station['station_name'],
                 "coordinates": {"lon": best_station['x'], "lat": best_station['y']},
                 "redirect_url": redirect_url,
-                "factors": factors
+                "factors": factors,
+                "chatgpt_response": chatgpt_response  # Add the response from the URL
             }
             results.append(result)
             # print(best_station['x'], best_station['y'])
