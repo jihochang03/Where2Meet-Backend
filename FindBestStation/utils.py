@@ -132,10 +132,10 @@ def find_nearest_stations_kakao(midpoint):
                 'y': float(document['y'])
             }
             # 거리 필터링: 위도와 경도로부터 실제 거리를 계산하여 1000미터 이내의 역만 포함
-            distance = calculate_distance(midpoint[0], midpoint[1], station['x'], station['y'])
-            if distance <= 16000:
-                stations.append(station)
-                print(station)
+            # distance = calculate_distance(midpoint[0], midpoint[1], station['x'], station['y'])
+            # if distance <= 16000:
+            stations.append(station)
+            print(station)
         return stations
     else:
         print(f"Error in processing request: {response.status_code}")
