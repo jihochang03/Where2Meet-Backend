@@ -112,13 +112,18 @@ def find_optimal_station(request):
     if request.method == 'POST':
         locations = request.data.get('locations', [])
         factors = request.data.get('factors', [])
+        try:
+            locations = [{'lon': lat, 'lat': lon} for lon, lat in locations]
+            factors = [int(factor) for factor in factors]
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=400)
     elif request.method == 'GET':
         locations = request.query_params.getlist('locations')
         factors = request.query_params.getlist('factors')
         # Convert locations and factors to appropriate types
         try:
             locations = [tuple(map(float, loc.split(','))) for loc in locations]
-            locations = [{'lon': lon, 'lat': lat} for lon, lat in locations]
+            locations = [{'lon': lat, 'lat': lon} for lon, lat in locations]
             factors = [int(factor) for factor in factors]
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=400)
