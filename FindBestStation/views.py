@@ -133,6 +133,8 @@ def find_optimal_station(request):
         return JsonResponse({'error': 'Up to 6 factors can be provided.'}, status=400)
 
     midpoint = calculate_midpoint(locations)
+    if midpoint == (0, 0):
+        return JsonResponse({'error': 'Midpoint is not within 50km of Seoul and cannot be adjusted to a Seoul location.'}, status=400)
     print(f'midpoint: {midpoint}')
 
     # Step 3: 중간 지점에서 20km 반경의 지하철역 확인
