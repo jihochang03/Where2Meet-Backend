@@ -58,7 +58,7 @@ def find_nearest_seoul(lon, lat):
         "query": "서울",
         "x": lon,
         "y": lat,
-        "radius": 50000,  # 50km 내에서 검색
+        "radius": 100000,  # 50km 내에서 검색
         "sort": "distance"
     }
     
