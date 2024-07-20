@@ -48,7 +48,9 @@ def is_within_seoul(lon, lat):
             region_1depth_name = documents[0].get('region_1depth_name', '')
             print(region_1depth_name)
             if '서울특별시' in region_1depth_name:
-                return True
+                return region_1depth_name
+            elif '경기도' in region_1depth_name:
+                return documents[0].get('region_2depth_name', '')
     # print("서울 아님")
     return False
 
@@ -95,7 +97,7 @@ def calculate_midpoint(locations):
     # 중간점이 서울 내에 있는지 확인하고, 아니면 가장 가까운 서울 내 위치로 이동
     if not is_within_seoul(midpoint_lon, midpoint_lat):
         try:
-            midpoint_lon, midpoint_lat = find_nearest_seoul(midpoint_lon, midpoint_lat)
+            #midpoint_lon, midpoint_lat = find_nearest_seoul(midpoint_lon, midpoint_lat)
             print(f"Adjusted midpoint_lon: {midpoint_lon}, midpoint_lat: {midpoint_lat}")
         except ValueError as e:
             print(e)
