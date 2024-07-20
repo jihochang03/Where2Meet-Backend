@@ -145,6 +145,8 @@ def find_optimal_station(request):
     print(f"nearest_stations: {nearest_stations}")
     print(f"locations: {locations}")
     print(f"factors: {factors}")
+    print("--------------------------------")
+    
     best_stations = find_best_station(nearest_stations, locations, factors)
 
     if best_stations:
