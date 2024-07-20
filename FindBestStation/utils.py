@@ -31,13 +31,74 @@ def wgs84_to_epsg5179(lon, lat):
   x, y = r_transformer.transform(lat, lon) # x, y
   return x, y
 
+def epsg5179_to_wgs84(lon, lat):
+  x, y = f_transformer.transform(lat, lon) # x, y
+  return x, y
+
+def is_within_seoul(lon, lat):
+    url = "https://dapi.kakao.com/v2/local/geo/coord2regioncode.json"
+    headers = {"Authorization": f"KakaoAK {KAKAO_API_KEY}"}
+    params = {"x": lon, "y": lat}
+    
+    response = requests.get(url, headers=headers, params=params)
+    if response.status_code == 200:
+        data = response.json()
+        documents = data.get('documents', [])
+        if documents:
+            region_2depth_name = documents[0].get('region_2depth_name', '')
+            if '서울' in region_2depth_name:
+                return True
+    return False
+
+def find_nearest_seoul(lon, lat):
+    url = "https://dapi.kakao.com/v2/local/search/keyword.json"
+    headers = {"Authorization": f"KakaoAK {KAKAO_API_KEY}"}
+    params = {
+        "query": "서울",
+        "x": lon,
+        "y": lat,
+        "radius": 50000,  # 50km 내에서 검색
+        "sort": "distance"
+    }
+    
+    response = requests.get(url, headers=headers, params=params)
+    if response.status_code == 200:
+        data = response.json()
+        documents = data.get('documents', [])
+        if documents:
+            nearest_location = documents[0]
+            nearest_lon = float(nearest_location['x'])
+            nearest_lat = float(nearest_location['y'])
+            return nearest_lon, nearest_lat
+        else:
+            raise ValueError("No Seoul location found within 50km radius.")
+    else:
+        raise ValueError("Error while searching for nearest Seoul location.")
+
 def calculate_midpoint(locations):
     print(locations)
-    lon = [loc['lon'] for loc in locations]
-    lat = [loc['lat'] for loc in locations]
-    midpoint_lon = sum(lon) / len(lon)
-    midpoint_lat = sum(lat) / len(lat)
+
+    # WGS84 좌표를 EPSG:5179로 변환
+    epsg5179_coords = [wgs84_to_epsg5179(loc['lon'], loc['lat']) for loc in locations]
+
+    # 중간점 계산
+    midpoint_x = sum(coord[0] for coord in epsg5179_coords) / len(epsg5179_coords)
+    midpoint_y = sum(coord[1] for coord in epsg5179_coords) / len(epsg5179_coords)
+    print(f"midpoint_x: {midpoint_x}, midpoint_y: {midpoint_y}")
+
+    # 중간점을 다시 WGS84로 변환
+    midpoint_lon, midpoint_lat = epsg5179_to_wgs84(midpoint_x, midpoint_y)
     print(f"midpoint_lon: {midpoint_lon}, midpoint_lat: {midpoint_lat}")
+
+    # 중간점이 서울 내에 있는지 확인하고, 아니면 가장 가까운 서울 내 위치로 이동
+    if not is_within_seoul(midpoint_lon, midpoint_lat):
+        try:
+            midpoint_lon, midpoint_lat = find_nearest_seoul(midpoint_lon, midpoint_lat)
+            print(f"Adjusted midpoint_lon: {midpoint_lon}, midpoint_lat: {midpoint_lat}")
+        except ValueError as e:
+            print(e)
+            raise ValueError("Midpoint is not within 50km of Seoul and cannot be adjusted to a Seoul location.")
+
     return midpoint_lon, midpoint_lat
 
 
@@ -133,12 +194,13 @@ def get_transit_time(start_x, start_y, end_x, end_y):
 
 def find_best_station(stations, user_locations, factors):
     station_scores = []
-    factor_2_weight = 1.5
-    factor_3_weight = 1.5
-    factor_4_weight = 1.5
-    factor_5_weight = 1.1
-    factor_6_weight = 1.1
-    factor_7_weight = 1.1
+    
+    factor_2_weight= os.getenv('FACTOR_2_WEIGHT')
+    factor_3_weight= os.getenv('FACTOR_3_WEIGHT')
+    factor_4_weight= os.getenv('FACTOR_4_WEIGHT')
+    factor_5_weight= os.getenv('FACTOR_5_WEIGHT')
+    factor_6_weight= os.getenv('FACTOR_6_WEIGHT')
+    factor_7_weight= os.getenv('FACTOR_7_WEIGHT')
 
     for station in stations:
         try:
@@ -148,12 +210,13 @@ def find_best_station(stations, user_locations, factors):
                 print(f"transit_time={transit_time}")
                 if transit_time:
                     total_transit_time += transit_time
+                    print('yes_transit')
                 else:
                     total_transit_time += float('inf')  # If transit time cannot be fetched, assume it's very large
-
+                    print('no_transit')
             station_obj = Station.objects.get(station_name=station['station_name'])
 
-            final_score = 0.0
+            final_score = 1.0
             for factor in factors:
                 factor_attr = f'factor_{factor}'
                 factor_value = getattr(station_obj, factor_attr, 0)
@@ -185,32 +248,3 @@ def find_best_station(stations, user_locations, factors):
     # 점수가 낮은 순서로 정렬하고 상위 3개 반환
     station_scores.sort(key=lambda x: x[1])
     return [station for station, score in station_scores[:3]]
-
-
-
-# def get_places(keyword):
-#     headers = {
-#         "Authorization": f"KakaoAK {KAKAO_API_KEY}"
-#     }
-#     params = {
-#         "query": keyword,
-#         "page": 1,
-#         "size": 5,
-#         "sort": "accuracy"
-#     }
-#     response = requests.get(search_url, headers=headers, params=params)
-#     if response.status_code == 200:
-#         data = response.json()
-#         places = []
-#         for document in data['documents']:
-#             place = {
-#                 'place_name': document['place_name'],
-#                 'address_name': document['address_name'],
-#                 'x': float(document['x']),
-#                 'y': float(document['y'])
-#             }
-#             places.append(place)
-#         return places
-#     else:
-#         print(f"Error or no results for query: {keyword}")
-#         return []
