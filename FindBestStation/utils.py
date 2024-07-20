@@ -104,7 +104,7 @@ def calculate_midpoint(locations):
             print(e)
             return 0, 0
 
-    return midpoint_lon, midpoint_lat
+    return midpoint_lat, midpoint_lon
 
 
 place_search_url = f"https://dapi.kakao.com/v2/local/search/keyword.{FORMAT}"
