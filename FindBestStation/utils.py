@@ -87,7 +87,7 @@ def calculate_midpoint(locations):
     print(f"midpoint_x: {midpoint_x}, midpoint_y: {midpoint_y}")
 
     # 중간점을 다시 WGS84로 변환
-    midpoint_lat, midpoint_lon = epsg5179_to_wgs84(midpoint_x, midpoint_y)
+    midpoint_lat, midpoint_lon = epsg5179_to_wgs84(midpoint_y, midpoint_x)
     print(f"midpoint_lon: {midpoint_lon}, midpoint_lat: {midpoint_lat}")
 
     # 중간점이 서울 내에 있는지 확인하고, 아니면 가장 가까운 서울 내 위치로 이동
