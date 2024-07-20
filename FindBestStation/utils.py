@@ -114,9 +114,9 @@ def find_nearest_stations_kakao(midpoint):
         "query": "지하철역",
         "x": midpoint[1],  # 경도
         "y": midpoint[0],  # 위도
-        "radius": 5000,
+        "radius": 20000,
         "sort": "distance",
-        "category_group_code": "SW8",
+        # "category_group_code": "SW8",
     }
     
     response = requests.get(place_search_url, headers=headers, params=params)
