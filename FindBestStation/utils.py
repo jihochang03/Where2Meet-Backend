@@ -46,13 +46,8 @@ def is_within_seoul(lon, lat):
         documents = data.get('documents', [])
         if documents:
             region_1depth_name = documents[0].get('region_1depth_name', '')
-            print(region_1depth_name)
             if '서울특별시' in region_1depth_name:
                 return True
-            #elif '경기도' in region_1depth_name:
-                #print(documents[0].get('region_2depth_name', ''))
-                #return documents[0].get('region_2depth_name', '')
-    # print("서울 아님")
     return False
 
 def find_nearest_seoul(lon, lat):
@@ -62,7 +57,7 @@ def find_nearest_seoul(lon, lat):
         "query": "서울",
         "x": lon,
         "y": lat,
-        "radius": 20000,  # 50km 내에서 검색
+        "radius": 20000,  # 20km 내에서 검색
         "sort": "distance"
     }
     
@@ -76,30 +71,44 @@ def find_nearest_seoul(lon, lat):
             nearest_lat = float(nearest_location['y'])
             return nearest_lon, nearest_lat
         else:
-            raise ValueError("No Seoul location found within 50km radius.")
+            raise ValueError("No Seoul location found within 20km radius.")
     else:
         raise ValueError("Error while searching for nearest Seoul location.")
 
-def calculate_midpoint(locations):
-    # print(locations)
+def adjust_locations_to_seoul(locations):
+    adjusted_locations = []
+    for loc in locations:
+        lon, lat = loc['lon'], loc['lat']
+        if not is_within_seoul(lon, lat):
+            try:
+                lon, lat = find_nearest_seoul(lon, lat)
+                print(f"Adjusted location to Seoul: lon={lon}, lat={lat}")
+            except ValueError as e:
+                print(e)
+                return None  # If any location cannot be adjusted, return None
+        adjusted_locations.append({'lon': lon, 'lat': lat})
+    return adjusted_locations
 
+def calculate_midpoint(locations):
+    adjusted_locations = adjust_locations_to_seoul(locations)
+    if adjusted_locations is None:
+        return 0, 0
+    
     # WGS84 좌표를 EPSG:5179로 변환
-    epsg5179_coords = [wgs84_to_epsg5179(loc['lon'], loc['lat']) for loc in locations]
-    # print(epsg5179_coords)
+    epsg5179_coords = [wgs84_to_epsg5179(loc['lon'], loc['lat']) for loc in adjusted_locations]
+    
     # 중간점 계산
     midpoint_x = sum(coord[0] for coord in epsg5179_coords) / len(epsg5179_coords)
     midpoint_y = sum(coord[1] for coord in epsg5179_coords) / len(epsg5179_coords)
-    # print(f"midpoint_x: {midpoint_x}, midpoint_y: {midpoint_y}")
 
     # 중간점을 다시 WGS84로 변환
     midpoint_lat, midpoint_lon = epsg5179_to_wgs84(midpoint_y, midpoint_x)
-    # print(f"midpoint_lon: {midpoint_lon}, midpoint_lat: {midpoint_lat}")
 
-    # 중간점이 서울 내에 있는지 확인하고, 아니면 가장 가까운 서울 내 위치로 이동
+    # 최종 중간점이 서울 내에 있는지 확인하고, 아니면 가장 가까운 서울 내 위치로 이동
     if not is_within_seoul(midpoint_lon, midpoint_lat):
         try:
             midpoint_lon, midpoint_lat = find_nearest_seoul(midpoint_lon, midpoint_lat)
-            print(f"Adjusted midpoint_lon: {midpoint_lon}, midpoint_lat: {midpoint_lat}")
+            print(f"Adjusted midpoint to Seoul: lon={midpoint_lon}, lat={midpoint_lat}")
         except ValueError as e:
             print(e)
             return 0, 0
