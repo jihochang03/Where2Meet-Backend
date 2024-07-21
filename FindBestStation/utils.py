@@ -46,6 +46,7 @@ def is_within_seoul(lon, lat):
         documents = data.get('documents', [])
         if documents:
             region_1depth_name = documents[0].get('region_1depth_name', '')
+            print(region_1depth_name)
             return (region_1depth_name)
             
 
