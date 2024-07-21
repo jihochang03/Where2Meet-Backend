@@ -112,13 +112,18 @@ def find_optimal_station(request):
     if request.method == 'POST':
         locations = request.data.get('locations', [])
         factors = request.data.get('factors', [])
+        try:
+            locations = [{'lon': loc['lat'], 'lat': loc['lon']} for loc in locations]
+            factors = [int(factor) for factor in factors]
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=400)
     elif request.method == 'GET':
         locations = request.query_params.getlist('locations')
         factors = request.query_params.getlist('factors')
         # Convert locations and factors to appropriate types
         try:
             locations = [tuple(map(float, loc.split(','))) for loc in locations]
-            locations = [{'lon': lon, 'lat': lat} for lon, lat in locations]
+            locations = [{'lon': lat, 'lat': lon} for lon, lat in locations]
             factors = [int(factor) for factor in factors]
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=400)
@@ -133,7 +138,9 @@ def find_optimal_station(request):
         return JsonResponse({'error': 'Up to 6 factors can be provided.'}, status=400)
 
     midpoint = calculate_midpoint(locations)
-    print(midpoint)
+    if midpoint == (0, 0):
+        return JsonResponse({'error': 'Midpoint is not within 20km of Seoul and cannot be adjusted to a Seoul location.'}, status=400)
+    print(f'midpoint: {midpoint}')
 
     # Step 3: 중간 지점에서 20km 반경의 지하철역 확인
     nearest_stations = find_nearest_stations_kakao(midpoint)
@@ -143,23 +150,42 @@ def find_optimal_station(request):
     # Step 4: 최적의 장소를 팩터로 가중치 세워서 정리. 
     print("--------------------------------")
     print(f"nearest_stations: {nearest_stations}")
-    print(f"locations: {locations}")
-    print(f"factors: {factors}")
+    # print(f"locations: {locations}")
+    # print(f"factors: {factors}")
+    print("--------------------------------")
+    
     best_stations = find_best_station(nearest_stations, locations, factors)
 
     if best_stations:
         results = []
         for best_station in best_stations:
-            factors_query = '&'.join([f'factors={factor}' for factor in factors])
-            redirect_url = f'http://ec2-52-64-207-15.ap-southeast-2.compute.amazonaws.com:8080/api/CGPT/query/?station_name={best_station["station_name"]}&{factors_query}'
+            factors_query = '&'.join([f'factor={factor}' for factor in factors])
+            redirect_url_pc = f"http://ec2-52-64-207-15.ap-southeast-2.compute.amazonaws.com:8080/api/CGPT/query/?station_name={best_station['station_name']}&{factors_query}&view_type='pc'"
+            redirect_url_mobile = f"http://ec2-52-64-207-15.ap-southeast-2.compute.amazonaws.com:8080/api/CGPT/query/?station_name={best_station['station_name']}&{factors_query}&view_type='mobile'"
+            # Make a request to the redirect_url
+            try:
+                response = requests.get(redirect_url_pc)
+                response.raise_for_status()
+                chatgpt_response_pc = response.json()
+            except requests.exceptions.RequestException as e:
+                chatgpt_response_pc = {"error": str(e)}
+                
+            try:
+                response = requests.get(redirect_url_mobile)
+                response.raise_for_status()
+                chatgpt_response_mobile = response.json()
+            except requests.exceptions.RequestException as e:
+                chatgpt_response_mobile = {"error": str(e)}    
+            
             result = {
                 "station_name": best_station['station_name'],
-                "coordinates": {"lon": best_station['x'], "lat": best_station['y']},
-                "redirect_url": redirect_url,
-                "factors": factors
+                "coordinates": {"lon": best_station['y'], "lat": best_station['x']},
+                "factors": factors,
+                "chatgpt_response_pc": chatgpt_response_pc,  # Add the response from the URL
+                "chatgpt_response_mobile": chatgpt_response_mobile
             }
             results.append(result)
-            print(best_station['x'], best_station['y'])
+            # print(best_station['x'], best_station['y'])
         
         return Response({"best_stations": results})
     else:
