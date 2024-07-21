@@ -78,7 +78,9 @@ def find_nearest_seoul(lon, lat):
 
 def adjust_locations_to_seoul(locations):
     adjusted_locations = []
+    
     for loc in locations:
+        print(loc)
         lon, lat = loc['lon'], loc['lat']
         if not is_within_seoul(lon, lat):
             try:

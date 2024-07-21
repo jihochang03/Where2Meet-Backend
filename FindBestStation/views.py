@@ -107,6 +107,7 @@ transcoord_url = f"https://dapi.kakao.com/v2/local/geo/transcoord.{FORMAT}"
         404: 'No optimal station found',
     }
 )
+
 @api_view(['POST', 'GET'])
 def find_optimal_station(request):
     if request.method == 'POST':
