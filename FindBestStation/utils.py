@@ -46,10 +46,8 @@ def is_within_seoul(lon, lat):
         documents = data.get('documents', [])
         if documents:
             region_1depth_name = documents[0].get('region_1depth_name', '')
-            print(region_1depth_name)
-            if '서울특별시' in region_1depth_name:
-                return True
-    return False
+            return (region_1depth_name)
+            
 
 def find_nearest_seoul(lon, lat):
     url = "https://dapi.kakao.com/v2/local/search/keyword.json"
@@ -82,14 +80,16 @@ def adjust_locations_to_seoul(locations):
     for loc in locations:
         print(loc)
         lon, lat = loc['lon'], loc['lat']
-        if not is_within_seoul(lon, lat):
+        if is_within_seoul(lon, lat) == '서울특별시':
+            adjusted_locations.append({'lon': lon, 'lat': lat})
+        else:
             try:
                 lon, lat = find_nearest_seoul(lon, lat)
                 print(f"Adjusted location to Seoul: lon={lon}, lat={lat}")
+                adjusted_locations.append({'lon': lon, 'lat': lat})
             except ValueError as e:
                 print(e)
                 return None  # If any location cannot be adjusted, return None
-        adjusted_locations.append({'lon': lon, 'lat': lat})
     return adjusted_locations
 
 def calculate_midpoint(locations):
@@ -107,14 +107,14 @@ def calculate_midpoint(locations):
     # 중간점을 다시 WGS84로 변환
     midpoint_lat, midpoint_lon = epsg5179_to_wgs84(midpoint_y, midpoint_x)
 
-    # 최종 중간점이 서울 내에 있는지 확인하고, 아니면 가장 가까운 서울 내 위치로 이동
-    if not is_within_seoul(midpoint_lon, midpoint_lat):
-        try:
-            midpoint_lon, midpoint_lat = find_nearest_seoul(midpoint_lon, midpoint_lat)
-            print(f"Adjusted midpoint to Seoul: lon={midpoint_lon}, lat={midpoint_lat}")
-        except ValueError as e:
-            print(e)
-            return 0, 0
+    # # 최종 중간점이 서울 내에 있는지 확인하고, 아니면 가장 가까운 서울 내 위치로 이동
+    # if not is_within_seoul(midpoint_lon, midpoint_lat):
+    #     try:
+    #         midpoint_lon, midpoint_lat = find_nearest_seoul(midpoint_lon, midpoint_lat)
+    #         print(f"Adjusted midpoint to Seoul: lon={midpoint_lon}, lat={midpoint_lat}")
+    #     except ValueError as e:
+    #         print(e)
+    #         return 0, 0
 
     return midpoint_lon, midpoint_lat
 
