@@ -157,19 +157,6 @@ def find_nearest_stations_kakao(midpoint):
         print(f"Error in processing request: {response.status_code}")
         return []
 
-# def calculate_distance(lat1, lon1, lat2, lon2):
-#     from math import radians, cos, sin, sqrt, atan2
-    
-#     R = 6371000  # 지구 반지름 (미터)
-#     dlat = radians(lat2 - lat1)
-#     dlon = radians(lon2 - lon1)
-#     a = sin(dlat / 2) * sin(dlat / 2) + cos(radians(lat1)) * cos(radians(lat2)) * sin(dlon / 2) * sin(dlon / 2)
-#     c = 2 * atan2(sqrt(a), sqrt(1 - a))
-#     distance = R * c
-#     print(distance)
-#     return distance
-
-
 def get_transit_time(start_x, start_y, end_x, end_y):
     base_url = "https://api.odsay.com/v1/api/searchPubTransPathT"
     params = {
@@ -202,8 +189,52 @@ def get_transit_time(start_x, start_y, end_x, end_y):
         print(f"Error fetching transit time: {e}")
         return None
 
+def calculate_station_score(station, user_locations, factors, factor_weights):
+    try:
+        total_transit_time = 0
+
+        # 멀티쓰레드로 각 사용자 위치에 대해 transit_time 요청
+        with ThreadPoolExecutor(max_workers=10) as executor:
+            futures = {
+                executor.submit(get_transit_time, user['lon'], user['lat'], station['x'], station['y']): user
+                for user in user_locations
+            }
+            
+            for future in as_completed(futures):
+                try:
+                    transit_time = future.result()
+                    if transit_time:
+                        total_transit_time += transit_time
+                    else:
+                        total_transit_time += float('inf')  # If transit time cannot be fetched, assume it's very large
+                except Exception as e:
+                    print(f"Exception occurred: {e}")
+
+        # 데이터베이스에서 station 정보 가져오기
+        station_obj = Station.objects.get(station_name=station['station_name'])
+        
+        # Calculate the final score for the station
+        final_score = 1.0
+        for factor in factors:
+            factor_attr = f'factor_{factor}'
+            factor_value = getattr(station_obj, factor_attr, 0)
+            final_score += factor_value * factor_weights[factor]
+            
+        if total_transit_time > 0:
+            station_final_score = total_transit_time / final_score
+        else:
+            station_final_score = float('inf')
+
+        return (station, station_final_score)
+
+    except Station.DoesNotExist:
+        print(f"Station with name {station['station_name']} does not exist.")
+        return (station, float('inf'))
+    except Exception as e:
+        print(f"Error processing station {station['station_name']}: {e}")
+        return (station, float('inf'))
+
 def find_best_station(stations, user_locations, factors):
-    station_scores = []
     factor_weights = {
         2: float(os.getenv('FACTOR_2_WEIGHT', 1)),
         3: float(os.getenv('FACTOR_3_WEIGHT', 1)),
@@ -213,50 +244,21 @@ def find_best_station(stations, user_locations, factors):
         7: float(os.getenv('FACTOR_7_WEIGHT', 1))
     }
     
-    def fetch_transit_time_for_station(station, user_location):
-        return get_transit_time(user_location['lon'], user_location['lat'], station['x'], station['y'])
-    
-    for station in stations:
-        try:
-            total_transit_time = 0
+    station_scores = []
 
-            # 각 역에 대해 멀티쓰레드로 모든 사용자 위치에 대해 transit_time 요청
-            with ThreadPoolExecutor(max_workers=10) as executor:
-                futures = {
-                    executor.submit(fetch_transit_time_for_station, station, user): user
-                    for user in user_locations
-                }
-                
-                for future in as_completed(futures):
-                    try:
-                        transit_time = future.result()
-                        if transit_time:
-                            total_transit_time += transit_time
-                        else:
-                            total_transit_time += float('inf')  # If transit time cannot be fetched, assume it's very large
-                    except Exception as e:
-                        print(f"Exception occurred: {e}")
-
-            # Calculate the final score for the station
-            # 여기서는 Station 모델과 관련된 데이터베이스 작업을 모의합니다. 실제로는 DB에서 가져오거나 데이터와 연결해야 합니다.
-            station_obj = Station.objects.get(station_name=station['station_name'])
-            # 실제 환경에서는 아래의 코드를 사용하세요.
-            # final_score = 1.0
-            final_score = 1.0
-            for factor in factors:
-                factor_attr = f'factor_{factor}'
-                factor_value = getattr(station_obj, factor_attr, 0)
-                final_score += factor_value * factor_weights[factor]
-                
-            if total_transit_time > 0:
-                station_final_score = total_transit_time / final_score
-            else:
-                station_final_score = float('inf')
-
-            station_scores.append((station, station_final_score))
-
-        except Exception as e:
-            print(f"Error processing station {station['station_name']}: {e}")
+    # 멀티쓰레드로 모든 역을 동시에 처리
+    with ThreadPoolExecutor(max_workers=10) as executor:
+        futures = {
+            executor.submit(calculate_station_score, station, user_locations, factors, factor_weights): station
+            for station in stations
+        }
+        
+        for future in as_completed(futures):
+            try:
+                station, score = future.result()
+                station_scores.append((station, score))
+            except Exception as e:
+                print(f"Exception occurred: {e}")
 
     # 점수가 낮은 순서로 정렬하고 상위 3개 반환
     station_scores.sort(key=lambda x: x[1])
