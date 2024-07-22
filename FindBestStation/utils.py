@@ -217,7 +217,6 @@ def find_best_station(stations, user_locations, factors):
         try:
             total_transit_time = 0
             
-            # 각 사용자 위치에 대해 멀티쓰레드로 get_transit_time 요청
             with ThreadPoolExecutor() as executor:
                 futures = [executor.submit(get_transit_time, user['lon'], user['lat'], station['x'], station['y']) for user in user_locations]
                 
