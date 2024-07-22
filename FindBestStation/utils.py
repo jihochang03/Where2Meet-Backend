@@ -275,4 +275,3 @@ def find_best_station(stations, user_locations, factors):
     # 점수가 낮은 순서로 정렬하고 상위 3개 반환
     station_scores.sort(key=lambda x: x[1])
     return [station for station, score in station_scores[:3]]
-
