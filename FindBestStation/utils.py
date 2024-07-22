@@ -157,7 +157,7 @@ def find_nearest_stations_kakao(midpoint):
         print(f"Error in processing request: {response.status_code}")
         return []
 
-def get_transit_time(start_x, start_y, end_x, end_y, retries=5, delay=0.3):
+def get_transit_time(start_x, start_y, end_x, end_y):
     base_url = "https://api.odsay.com/v1/api/searchPubTransPathT"
     params = {
         "SX": start_x,
@@ -169,45 +169,28 @@ def get_transit_time(start_x, start_y, end_x, end_y, retries=5, delay=0.3):
     encoded_params = urllib.parse.urlencode(params)
     request_url = f"{base_url}?{encoded_params}"
     
-    attempt = 0
-    while attempt < retries:
-        try:
-            response = requests.get(request_url)
-            response.raise_for_status()  # Raise an error for bad status codes
+    try:
+        response = requests.get(request_url)
+        response.raise_for_status()  # Raise an error for bad status codes
+        data = response.json()
+        
+        # 디버깅: API 응답 데이터 출력
+        print(f"API Response: {data}")
 
-            # API 응답 데이터 출력 (디버깅 용도)
-            print(f"API Response: {response.json()}")
+        # Extract transit time from the response
+        transit_time = None
+        if 'result' in data and 'path' in data['result']:
+            min_duration = float('inf')
+            for path in data['result']['path']:
+                duration = path['info']['totalTime']
+                if duration < min_duration:
+                    min_duration = duration
+            transit_time = min_duration
+        return transit_time
 
-            data = response.json()
-            
-            # Extract transit time from the response
-            transit_time = None
-            if 'result' in data and 'path' in data['result']:
-                min_duration = float('inf')
-                for path in data['result']['path']:
-                    duration = path['info']['totalTime']
-                    if duration < min_duration:
-                        min_duration = duration
-                transit_time = min_duration
-            return transit_time
-
-        except requests.exceptions.HTTPError as e:
-            if response.status_code == 429:
-                # Too Many Requests - wait before retrying
-                print(f"Rate limit exceeded. Retrying in {delay} seconds...")
-                time.sleep(delay)
-                attempt += 1
-                delay *= 2  # Exponential backoff
-            else:
-                print(f"HTTP error occurred: {e}")
-                return None
-        except requests.exceptions.RequestException as e:
-            print(f"Request exception occurred: {e}")
-            return None
-
-    # Exceeded maximum retries
-    print(f"Failed to fetch transit time after {retries} attempts.")
-    return None
+    except requests.exceptions.RequestException as e:
+        print(f"Error fetching transit time: {e}")
+        return None
 
 def calculate_station_score(station, user_locations, factors, factor_weights):
     try:
