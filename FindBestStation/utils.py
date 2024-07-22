@@ -213,21 +213,24 @@ def find_best_station(stations, user_locations, factors):
         7: float(os.getenv('FACTOR_7_WEIGHT', 1))
     }
     
-    def get_total_transit_time(station, user_locations):
-        total_transit_time = 0
-        with ThreadPoolExecutor() as executor:
-            future_to_user_location = {executor.submit(get_transit_time, user['lon'], user['lat'], station['x'], station['y']): user for user in user_locations}
-            for future in as_completed(future_to_user_location):
-                transit_time = future.result()
-                if transit_time:
-                    total_transit_time += transit_time
-                else:
-                    total_transit_time += float('inf')  # If transit time cannot be fetched, assume it's very large
-        return total_transit_time
-    
     for station in stations:
         try:
-            total_transit_time = get_total_transit_time(station, user_locations)
+            total_transit_time = 0
+            
+            # 각 사용자 위치에 대해 멀티쓰레드로 get_transit_time 요청
+            with ThreadPoolExecutor() as executor:
+                futures = [executor.submit(get_transit_time, user['lon'], user['lat'], station['x'], station['y']) for user in user_locations]
+                
+                for future in as_completed(futures):
+                    transit_time = future.result()
+                    print(f"station={station}")
+                    print(f"transit_time={transit_time}")
+                    if transit_time:
+                        total_transit_time += transit_time
+                        print('yes_transit')
+                    else:
+                        total_transit_time += float('inf')  # If transit time cannot be fetched, assume it's very large
+                        print('no_transit')
             
             station_obj = Station.objects.get(station_name=station['station_name'])
             
