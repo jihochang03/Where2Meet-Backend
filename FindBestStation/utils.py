@@ -217,20 +217,28 @@ def find_best_station(stations, user_locations, factors):
         try:
             total_transit_time = 0
             
-            with ThreadPoolExecutor() as executor:
-                futures = [executor.submit(get_transit_time, user['lon'], user['lat'], station['x'], station['y']) for user in user_locations]
+            # 각 사용자 위치에 대해 멀티쓰레드로 get_transit_time 요청
+            with ThreadPoolExecutor(max_workers=10) as executor:  # max_workers 수를 조정해보세요
+                futures = {
+                    executor.submit(get_transit_time, user['lon'], user['lat'], station['x'], station['y']): user
+                    for user in user_locations
+                }
                 
                 for future in as_completed(futures):
-                    transit_time = future.result()
-                    print(f"station={station}")
-                    print(f"transit_time={transit_time}")
-                    if transit_time:
-                        total_transit_time += transit_time
-                        print('yes_transit')
-                    else:
-                        total_transit_time += float('inf')  # If transit time cannot be fetched, assume it's very large
-                        print('no_transit')
-            
+                    try:
+                        transit_time = future.result()
+                        print(f"station={station}")
+                        print(f"user_location={futures[future]}")
+                        print(f"transit_time={transit_time}")
+                        if transit_time:
+                            total_transit_time += transit_time
+                            print('yes_transit')
+                        else:
+                            total_transit_time += float('inf')  # If transit time cannot be fetched, assume it's very large
+                            print('no_transit')
+                    except Exception as e:
+                        print(f"Exception occurred: {e}")
+
             station_obj = Station.objects.get(station_name=station['station_name'])
             
             final_score = 1.0
