@@ -147,21 +147,6 @@ def find_nearest_stations_kakao(midpoint):
         print(f"Error in processing request: {response.status_code}")
         return []
     
-
-import urllib.parse
-import requests
-import os
-from concurrent.futures import ThreadPoolExecutor, as_completed
-from django.db import models
-
-# Replace with your actual API key
-OD_SAY_API_KEY = 'YOUR_API_KEY'
-
-class Station(models.Model):
-    station_name = models.CharField(max_length=255)
-    # Add other fields that correspond to the factors
-    # e.g., factor_2, factor_3, etc.
-
 def get_transit_time(start_x, start_y, end_x, end_y):
     base_url = "https://api.odsay.com/v1/api/searchPubTransPathT"
     params = {
@@ -263,3 +248,89 @@ def find_best_station(stations, user_locations, factors):
     # Sort and return top 3 stations
     station_scores.sort(key=lambda x: x[1])
     return [station for station, score in station_scores[:3]]
+
+# def get_transit_time(start_x, start_y, end_x, end_y):
+#     base_url = "https://api.odsay.com/v1/api/searchPubTransPathT"
+#     params = {
+#         "SX": start_x,
+#         "SY": start_y,
+#         "EX": end_x,
+#         "EY": end_y,
+#         "apiKey": OD_SAY_API_KEY
+#     }
+#     encoded_params = urllib.parse.urlencode(params)
+#     request_url = f"{base_url}?{encoded_params}"
+    
+#     try:
+#         response = requests.get(request_url)
+#         response.raise_for_status()  
+#         data = response.json()
+
+
+#         transit_time = None
+#         if 'result' in data and 'path' in data['result']:
+#             min_duration = float('inf')
+#             for path in data['result']['path']:
+#                 duration = path['info']['totalTime']
+#                 if duration < min_duration:
+#                     min_duration = duration
+#             transit_time = min_duration
+#         return transit_time
+
+#     except requests.exceptions.RequestException as e:
+#         print(f"Error fetching transit time: {e}")
+#         return None
+
+# def find_best_station(stations, user_locations, factors):
+#     station_scores = []
+#     factor_weights = {
+#         2: float(os.getenv('FACTOR_2_WEIGHT', 1)),
+#         3: float(os.getenv('FACTOR_3_WEIGHT', 1)),
+#         4: float(os.getenv('FACTOR_4_WEIGHT', 1)),
+#         5: float(os.getenv('FACTOR_5_WEIGHT', 1)),
+#         6: float(os.getenv('FACTOR_6_WEIGHT', 1)),
+#         7: float(os.getenv('FACTOR_7_WEIGHT', 1))
+#     }
+    
+#     def fetch_transit_time_for_station(station, user_location):
+#         return get_transit_time(user_location['lon'], user_location['lat'], station['x'], station['y'])
+    
+#     for station in stations:
+#         try:
+#             total_transit_time = 0
+#             with ThreadPoolExecutor(max_workers=10) as executor:
+#                 futures = {
+#                     executor.submit(fetch_transit_time_for_station, station, user): user
+#                     for user in user_locations
+#                 }
+                
+#                 for future in as_completed(futures):
+#                     try:
+#                         transit_time = future.result()
+#                         if transit_time:
+#                             total_transit_time += transit_time
+#                         else:
+#                             total_transit_time += float('inf')  
+#                     except Exception as e:
+#                         print(f"Exception occurred: {e}")
+
+#             station_obj = Station.objects.get(station_name=station['station_name'])
+            
+#             final_score = 1.0
+#             for factor in factors:
+#                 factor_attr = f'factor_{factor}'
+#                 factor_value = getattr(station_obj, factor_attr, 0)
+#                 final_score += factor_value * factor_weights[factor]
+                
+#             if total_transit_time > 0:
+#                 station_final_score = total_transit_time / final_score
+#             else:
+#                 station_final_score = float('inf')
+#             print(f'station:{station}, station_final_score:{station_final_score}')
+#             station_scores.append((station, station_final_score))
+
+#         except Exception as e:
+#             print(f"Error processing station {station['station_name']}: {e}")
+
+#     station_scores.sort(key=lambda x: x[1])
+#     return [station for station, score in station_scores[:3]] 
