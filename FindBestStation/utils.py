@@ -16,11 +16,30 @@ load_dotenv()
 KAKAO_API_KEY = os.getenv("KAKAO_API_KEY")
 NAVER_CLIENT_ID = os.getenv("NAVER_CLIENT_ID")
 NAVER_CLIENT_SECRET = os.getenv("NAVER_CLIENT_SECRET")
-OD_SAY_API_KEY = os.getenv("OD_SAY_API_KEY")
 FORMAT = "json"
 search_url = f"https://dapi.kakao.com/v2/local/search/keyword.{FORMAT}"
 transcoord_url = f"https://dapi.kakao.com/v2/local/geo/transcoord.{FORMAT}"  # target URL
+api_keys = []
+api_key_idx = 0
 
+def load_api_keys():
+    global api_keys
+    idx = 1
+    while True:
+        key = os.getenv(f'ODSAY_API_KEY{idx}')
+        if key is None:
+            break
+        api_keys.append(key)
+        idx += 1
+        
+def get_next_api_key():
+    global api_key_idx
+    key = api_keys[api_key_idx]
+    api_key_idx = (api_key_idx + 1) % N
+    return key
+
+load_api_keys()
+N = len(api_keys)  # API 키의 총 개수
 
 # EPSG:5179 좌표계 = 네이버 지도 좌표계
 crs_epsg5179 = CRS.from_epsg(5179)
@@ -151,12 +170,13 @@ def find_nearest_stations_kakao(midpoint):
 
 def get_transit_time(start_x, start_y, end_x, end_y):
     base_url = "https://api.odsay.com/v1/api/searchPubTransPathT"
+    api_key = get_next_api_key()
     params = {
         "SX": start_x,
         "SY": start_y,
         "EX": end_x,
         "EY": end_y,
-        "apiKey": OD_SAY_API_KEY
+        "apiKey": api_key
     }
     encoded_params = urllib.parse.urlencode(params)
     request_url = f"{base_url}?{encoded_params}"
