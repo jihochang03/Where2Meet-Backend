@@ -157,6 +157,13 @@ def find_nearest_stations_kakao(midpoint):
         print(f"Error in processing request: {response.status_code}")
         return []
 
+import requests
+import urllib.parse
+from concurrent.futures import ThreadPoolExecutor, as_completed
+
+# API 키는 환경 변수나 안전한 방법으로 설정하세요
+OD_SAY_API_KEY = 'your_api_key_here'
+
 def get_transit_time(start_x, start_y, end_x, end_y):
     base_url = "https://api.odsay.com/v1/api/searchPubTransPathT"
     params = {
@@ -173,6 +180,9 @@ def get_transit_time(start_x, start_y, end_x, end_y):
         response = requests.get(request_url)
         response.raise_for_status()  # Raise an error for bad status codes
         data = response.json()
+        
+        # 디버깅: API 응답 데이터 출력
+        print(f"API Response: {data}")
 
         # Extract transit time from the response
         transit_time = None
@@ -203,7 +213,7 @@ def calculate_station_score(station, user_locations, factors, factor_weights):
             for future in as_completed(futures):
                 try:
                     transit_time = future.result()
-                    if transit_time:
+                    if transit_time is not None:
                         total_transit_time += transit_time
                     else:
                         total_transit_time += float('inf')  # If transit time cannot be fetched, assume it's very large
