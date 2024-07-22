@@ -175,7 +175,7 @@ def get_transit_time(start_x, start_y, end_x, end_y):
         data = response.json()
         
         # 디버깅: API 응답 데이터 출력
-        print(f"API Response: {data}")
+        #print(f"API Response: {data}")
 
         # Extract transit time from the response
         transit_time = None
@@ -189,7 +189,7 @@ def get_transit_time(start_x, start_y, end_x, end_y):
         return transit_time
 
     except requests.exceptions.RequestException as e:
-        print(f"Error fetching transit time: {e}")
+        print(f"Error fetching transit time")
         return None
 
 def calculate_station_score(station, user_locations, factors, factor_weights):
@@ -259,7 +259,7 @@ def find_best_station(stations, user_locations, factors):
         for future in as_completed(futures):
             try:
                 station, score = future.result()
-                #print(f'station:{station}, score:{score}')
+                print(f'station:{station}, score:{score}')
                 station_scores.append((station, score))
             except Exception as e:
                 print(f"Exception occurred: {e}")
