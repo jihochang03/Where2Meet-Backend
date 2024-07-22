@@ -180,7 +180,7 @@ def get_transit_time(start_x, start_y, end_x, end_y):
 
     except requests.exceptions.RequestException as e:
         print(f"Error fetching transit time: {e}")
-        return None
+        return 120
 
 def find_best_station(stations, user_locations, factors):
     station_scores = []
