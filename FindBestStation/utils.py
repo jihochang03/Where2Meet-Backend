@@ -187,7 +187,7 @@ def get_transit_time(start_x, start_y, end_x, end_y):
         data = response.json()
 
 
-        transit_time = None
+        transit_time = 120
         if 'result' in data and 'path' in data['result']:
             min_duration = float('inf')
             for path in data['result']['path']:
