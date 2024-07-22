@@ -9,6 +9,7 @@ import pandas as pd
 from bs4 import BeautifulSoup
 import time
 import urllib.parse
+from queue import Queue
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 load_dotenv()
