@@ -201,9 +201,52 @@ def get_transit_time(start_x, start_y, end_x, end_y):
         print(f"Error fetching transit time: {e}")
         return None
 
+def calculate_station_score(station, user_locations, factors, factor_weights):
+    try:
+        total_transit_time = 0
+
+        # 멀티쓰레드로 각 사용자 위치에 대해 transit_time 요청
+        with ThreadPoolExecutor(max_workers=10) as executor:
+            futures = {
+                executor.submit(get_transit_time, user['lon'], user['lat'], station['x'], station['y']): user
+                for user in user_locations
+            }
+            
+            for future in as_completed(futures):
+                try:
+                    transit_time = future.result()
+                    if transit_time:
+                        total_transit_time += transit_time
+                    else:
+                        total_transit_time += float('inf')  # If transit time cannot be fetched, assume it's very large
+                except Exception as e:
+                    print(f"Exception occurred: {e}")
+
+        # 데이터베이스에서 station 정보 가져오기
+        station_obj = Station.objects.get(station_name=station['station_name'])
+        
+        # Calculate the final score for the station
+        final_score = 1.0
+        for factor in factors:
+            factor_attr = f'factor_{factor}'
+            factor_value = getattr(station_obj, factor_attr, 0)
+            final_score += factor_value * factor_weights[factor]
+            
+        if total_transit_time > 0:
+            station_final_score = total_transit_time / final_score
+        else:
+            station_final_score = float('inf')
+
+        return (station, station_final_score)
+
+    except Station.DoesNotExist:
+        print(f"Station with name {station['station_name']} does not exist.")
+        return (station, float('inf'))
+    except Exception as e:
+        print(f"Error processing station {station['station_name']}: {e}")
+        return (station, float('inf'))
+
 def find_best_station(stations, user_locations, factors):
-    station_scores = []
-    
     factor_weights = {
         2: float(os.getenv('FACTOR_2_WEIGHT', 1)),
         3: float(os.getenv('FACTOR_3_WEIGHT', 1)),
@@ -213,51 +256,23 @@ def find_best_station(stations, user_locations, factors):
         7: float(os.getenv('FACTOR_7_WEIGHT', 1))
     }
     
-    for station in stations:
-        try:
-            total_transit_time = 0
-            
-            # 각 사용자 위치에 대해 멀티쓰레드로 get_transit_time 요청
-            with ThreadPoolExecutor(max_workers=10) as executor:  # max_workers 수를 조정해보세요
-                futures = {
-                    executor.submit(get_transit_time, user['lon'], user['lat'], station['x'], station['y']): user
-                    for user in user_locations
-                }
-                
-                for future in as_completed(futures):
-                    try:
-                        transit_time = future.result()
-                        print(f"station={station}")
-                        print(f"user_location={futures[future]}")
-                        print(f"transit_time={transit_time}")
-                        if transit_time:
-                            total_transit_time += transit_time
-                            print('yes_transit')
-                        else:
-                            total_transit_time += float('inf')  # If transit time cannot be fetched, assume it's very large
-                            print('no_transit')
-                    except Exception as e:
-                        print(f"Exception occurred: {e}")
+    station_scores = []
 
-            station_obj = Station.objects.get(station_name=station['station_name'])
-            
-            final_score = 1.0
-            for factor in factors:
-                factor_attr = f'factor_{factor}'
-                factor_value = getattr(station_obj, factor_attr, 0)
-                final_score += factor_value * factor_weights[factor]
-                
-            if total_transit_time > 0:
-                station_final_score = total_transit_time / final_score
-            else:
-                station_final_score = float('inf')
-
-            station_scores.append((station, station_final_score))
-
-        except Station.DoesNotExist:
-            print(f"Station with cleaned name {station['station_name']} does not exist.")
-            continue
+    # 멀티쓰레드로 모든 역을 동시에 처리
+    with ThreadPoolExecutor(max_workers=10) as executor:
+        futures = {
+            executor.submit(calculate_station_score, station, user_locations, factors, factor_weights): station
+            for station in stations
+        }
+        
+        for future in as_completed(futures):
+            try:
+                station, score = future.result()
+                station_scores.append((station, score))
+            except Exception as e:
+                print(f"Exception occurred: {e}")
 
     # 점수가 낮은 순서로 정렬하고 상위 3개 반환
     station_scores.sort(key=lambda x: x[1])
     return [station for station, score in station_scores[:3]]
+
