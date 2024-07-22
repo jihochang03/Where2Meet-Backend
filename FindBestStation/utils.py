@@ -8,6 +8,7 @@ import requests
 import pandas as pd
 from bs4 import BeautifulSoup
 import urllib.parse
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 load_dotenv()
 KAKAO_API_KEY = os.getenv("KAKAO_API_KEY")
@@ -169,7 +170,6 @@ def find_nearest_stations_kakao(midpoint):
 #     return distance
 
 def get_transit_time(start_x, start_y, end_x, end_y):
-    # ODsay API 호출 URL 생성
     base_url = "https://api.odsay.com/v1/api/searchPubTransPathT"
     params = {
         "SX": start_x,
@@ -179,30 +179,23 @@ def get_transit_time(start_x, start_y, end_x, end_y):
         "apiKey": OD_SAY_API_KEY
     }
     encoded_params = urllib.parse.urlencode(params)
-    # print(f"encodedparams={encoded_params}")
     request_url = f"{base_url}?{encoded_params}"
-    print(request_url)
     
     try:
         response = requests.get(request_url)
         response.raise_for_status()  # Raise an error for bad status codes
-        # print(f"response={response}")
-        # Assuming the API response is JSON
         data = response.json()
 
         # Extract transit time from the response
         transit_time = None
         if 'result' in data and 'path' in data['result']:
-            # Find the journey with the minimum duration
             min_duration = float('inf')
             for path in data['result']['path']:
                 duration = path['info']['totalTime']
                 if duration < min_duration:
                     min_duration = duration
             transit_time = min_duration
-        # print(transit_time)
         return transit_time
-    
 
     except requests.exceptions.RequestException as e:
         print(f"Error fetching transit time: {e}")
@@ -211,63 +204,45 @@ def get_transit_time(start_x, start_y, end_x, end_y):
 def find_best_station(stations, user_locations, factors):
     station_scores = []
     
-    factor_2_weight= os.getenv('FACTOR_2_WEIGHT')
-    factor_3_weight= os.getenv('FACTOR_3_WEIGHT')
-    factor_4_weight= os.getenv('FACTOR_4_WEIGHT')
-    factor_5_weight= os.getenv('FACTOR_5_WEIGHT')
-    factor_6_weight= os.getenv('FACTOR_6_WEIGHT')
-    factor_7_weight= os.getenv('FACTOR_7_WEIGHT')
-
-    for station in stations:
-        try:
-            total_transit_time = 0
-            for user_location in user_locations:
-                transit_time = get_transit_time(user_location['lon'], user_location['lat'], station['x'], station['y'])
-                print(f"station={station}")
-                print(f"user_location={user_location}")
-                print(f"transit_time={transit_time}")
+    factor_weights = {
+        2: float(os.getenv('FACTOR_2_WEIGHT', 1)),
+        3: float(os.getenv('FACTOR_3_WEIGHT', 1)),
+        4: float(os.getenv('FACTOR_4_WEIGHT', 1)),
+        5: float(os.getenv('FACTOR_5_WEIGHT', 1)),
+        6: float(os.getenv('FACTOR_6_WEIGHT', 1)),
+        7: float(os.getenv('FACTOR_7_WEIGHT', 1))
+    }
+    
+    def get_total_transit_time(station, user_locations):
+        total_transit_time = 0
+        with ThreadPoolExecutor() as executor:
+            future_to_user_location = {executor.submit(get_transit_time, user['lon'], user['lat'], station['x'], station['y']): user for user in user_locations}
+            for future in as_completed(future_to_user_location):
+                transit_time = future.result()
                 if transit_time:
                     total_transit_time += transit_time
-                    print('yes_transit')
                 else:
                     total_transit_time += float('inf')  # If transit time cannot be fetched, assume it's very large
-                    print('no_transit')
-                    
+        return total_transit_time
+    
+    for station in stations:
+        try:
+            total_transit_time = get_total_transit_time(station, user_locations)
+            
             station_obj = Station.objects.get(station_name=station['station_name'])
-            print(station_obj)
             
             final_score = 1.0
             for factor in factors:
                 factor_attr = f'factor_{factor}'
-                print(f"factor_attr={factor_attr}")
                 factor_value = getattr(station_obj, factor_attr, 0)
-                print(f"factor_value={factor_value}")
-                if factor == 2:
-                    final_score += factor_value * float(factor_2_weight)
-                    print(f'factor_2 check, factor_value={factor_value}')
-                elif factor == 3:
-                    final_score += factor_value * float(factor_3_weight)
-                    print(f'factor_3 check, factor_value={factor_value}')
-                elif factor == 4:
-                    final_score += factor_value * float(factor_4_weight)
-                    print(f'factor_4 check, factor_value={factor_value}')
-                elif factor == 5:
-                    final_score += factor_value * float(factor_5_weight)
-                    print(f'factor_5 check, factor_value={factor_value}')
-                elif factor == 6:
-                    final_score += factor_value * float(factor_6_weight)
-                    print(f'factor_6 check, factor_value={factor_value}')
-                elif factor == 7:
-                    final_score += factor_value * float(factor_7_weight)
-                    print(f'factor_7 check, factor_value={factor_value}')
-            # total_transit_time이 0인 경우를 처리하여 최종 점수 계산
+                final_score += factor_value * factor_weights[factor]
+                
             if total_transit_time > 0:
-                station_final_score = total_transit_time/final_score
+                station_final_score = total_transit_time / final_score
             else:
                 station_final_score = float('inf')
 
             station_scores.append((station, station_final_score))
-            print(f"station:{station}, station_final_score={station_final_score}")
 
         except Station.DoesNotExist:
             print(f"Station with cleaned name {station['station_name']} does not exist.")
