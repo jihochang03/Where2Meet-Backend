@@ -323,7 +323,7 @@ def process_station_batch(stations_batch, user_locations, factors, results_queue
 
 # Main function to find the best stations
 def find_best_station(stations, user_locations, factors):
-    batch_size = 3
+    batch_size = 2
     results_queue = Queue()
     station_scores = []
 
