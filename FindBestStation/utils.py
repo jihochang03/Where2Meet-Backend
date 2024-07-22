@@ -239,7 +239,7 @@ def find_best_station(stations, user_locations, factors):
                 station_final_score = total_transit_time / final_score
             else:
                 station_final_score = float('inf')
-
+            print(f'station:{station}, station_final_score:{station_final_score}')
             station_scores.append((station, station_final_score))
 
         except Exception as e:
