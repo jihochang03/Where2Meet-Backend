@@ -256,6 +256,7 @@ def find_best_station(stations, user_locations, factors):
         for future in as_completed(futures):
             try:
                 station, score = future.result()
+                print(f'station:{station}, score:{score}')
                 station_scores.append((station, score))
             except Exception as e:
                 print(f"Exception occurred: {e}")
