@@ -7,6 +7,7 @@ from pyproj import Transformer, CRS
 import requests
 import pandas as pd
 from bs4 import BeautifulSoup
+import time
 import urllib.parse
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
@@ -145,7 +146,7 @@ def find_nearest_stations_kakao(midpoint):
         print(f"Error in processing request: {response.status_code}")
         return []
     
-def get_transit_time(start_x, start_y, end_x, end_y):
+def get_transit_time(start_x, start_y, end_x, end_y, retries=5, delay=0.3):
     base_url = "https://api.odsay.com/v1/api/searchPubTransPathT"
     params = {
         "SX": start_x,
@@ -157,25 +158,45 @@ def get_transit_time(start_x, start_y, end_x, end_y):
     encoded_params = urllib.parse.urlencode(params)
     request_url = f"{base_url}?{encoded_params}"
     
-    try:
-        response = requests.get(request_url)
-        response.raise_for_status()  # Raise an error for bad status codes
-        data = response.json()
+    attempt = 0
+    while attempt < retries:
+        try:
+            response = requests.get(request_url)
+            response.raise_for_status()  # Raise an error for bad status codes
 
-        # Extract transit time from the response
-        transit_time = None
-        if 'result' in data and 'path' in data['result']:
-            min_duration = float('inf')
-            for path in data['result']['path']:
-                duration = path['info']['totalTime']
-                if duration < min_duration:
-                    min_duration = duration
-            transit_time = min_duration
-        return transit_time
+            # API 응답 데이터 출력 (디버깅 용도)
+            print(f"API Response: {response.json()}")
 
-    except requests.exceptions.RequestException as e:
-        print(f"Error fetching transit time: {e}")
-        return None
+            data = response.json()
+            
+            # Extract transit time from the response
+            transit_time = None
+            if 'result' in data and 'path' in data['result']:
+                min_duration = float('inf')
+                for path in data['result']['path']:
+                    duration = path['info']['totalTime']
+                    if duration < min_duration:
+                        min_duration = duration
+                transit_time = min_duration
+            return transit_time
+
+        except requests.exceptions.HTTPError as e:
+            if response.status_code == 429:
+                # Too Many Requests - wait before retrying
+                print(f"Rate limit exceeded. Retrying in {delay} seconds...")
+                time.sleep(delay)
+                attempt += 1
+                delay *= 2  # Exponential backoff
+            else:
+                print(f"HTTP error occurred: {e}")
+                return None
+        except requests.exceptions.RequestException as e:
+            print(f"Request exception occurred: {e}")
+            return None
+
+    # Exceeded maximum retries
+    print(f"Failed to fetch transit time after {retries} attempts.")
+    return None
 
 def calculate_station_score(station, user_locations, factors, factor_weights):
     try:
@@ -191,19 +212,21 @@ def calculate_station_score(station, user_locations, factors, factor_weights):
             for future in as_completed(futures):
                 try:
                     transit_time = future.result()
-                    if transit_time:
+                    if transit_time is not None:
                         total_transit_time += transit_time
                     else:
                         total_transit_time += float('inf')  # If transit time cannot be fetched, assume it's very large
                 except Exception as e:
                     print(f"Exception occurred: {e}")
 
+        # 데이터베이스에서 station 정보 가져오기
+        station_obj = Station.objects.get(station_name=station['station_name'])
+        
         # Calculate the final score for the station
         final_score = 1.0
         for factor in factors:
             factor_attr = f'factor_{factor}'
-            # 실제로는 station_obj에서 factor 값을 가져와야 합니다.
-            factor_value = 0  # Replace this with actual factor value from your data source
+            factor_value = getattr(station_obj, factor_attr, 0)
             final_score += factor_value * factor_weights[factor]
             
         if total_transit_time > 0:
@@ -213,6 +236,9 @@ def calculate_station_score(station, user_locations, factors, factor_weights):
 
         return (station, station_final_score)
 
+    except Station.DoesNotExist:
+        print(f"Station with name {station['station_name']} does not exist.")
+        return (station, float('inf'))
     except Exception as e:
         print(f"Error processing station {station['station_name']}: {e}")
         return (station, float('inf'))
@@ -239,7 +265,6 @@ def find_best_station(stations, user_locations, factors):
         for future in as_completed(futures):
             try:
                 station, score = future.result()
-                print()
                 print(f'station:{station}, score:{score}')
                 station_scores.append((station, score))
             except Exception as e:
