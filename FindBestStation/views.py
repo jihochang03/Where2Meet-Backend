@@ -1,12 +1,11 @@
-from django.shortcuts import render
 from django.http import JsonResponse
 from rest_framework.decorators import api_view
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 from rest_framework.response import Response
-from decouple import config
 from .utils import calculate_midpoint, find_nearest_stations_kakao, find_best_station
 import requests
+from concurrent.futures import ThreadPoolExecutor, as_completed
 import os
 from dotenv import load_dotenv
 import json
@@ -63,6 +62,35 @@ FORMAT = "json"
 search_url = f"https://dapi.kakao.com/v2/local/search/keyword.{FORMAT}"
 transcoord_url = f"https://dapi.kakao.com/v2/local/geo/transcoord.{FORMAT}"
 
+def process_station_requests(best_station, factors):
+    factors_query = '&'.join([f'factor={factor}' for factor in factors])
+    base_url = "http://ec2-52-64-207-15.ap-southeast-2.compute.amazonaws.com:8080/api/CGPT/query"
+    redirect_url_pc = f"{base_url}/?station_name={best_station['station_name']}&{factors_query}&view_type='pc'"
+    redirect_url_mobile = f"{base_url}/?station_name={best_station['station_name']}&{factors_query}&view_type='mobile'"
+
+    def fetch_url(url):
+        try:
+            response = requests.get(url)
+            response.raise_for_status()
+            return response.json()
+        except requests.exceptions.RequestException as e:
+            return {"error": str(e)}
+
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        future_pc = executor.submit(fetch_url, redirect_url_pc)
+        future_mobile = executor.submit(fetch_url, redirect_url_mobile)
+
+        chatgpt_response_pc = future_pc.result()
+        chatgpt_response_mobile = future_mobile.result()
+
+    return {
+        "station_name": best_station['station_name'],
+        "coordinates": {"lon": best_station['y'], "lat": best_station['x']},
+        "factors": factors,
+        "chatgpt_response_pc": chatgpt_response_pc,
+        "chatgpt_response_mobile": chatgpt_response_mobile
+    }
+
 
 @swagger_auto_schema(
     method='post',
@@ -107,6 +135,7 @@ transcoord_url = f"https://dapi.kakao.com/v2/local/geo/transcoord.{FORMAT}"
         404: 'No optimal station found',
     }
 )
+
 @api_view(['POST', 'GET'])
 def find_optimal_station(request):
     if request.method == 'POST':
@@ -158,35 +187,15 @@ def find_optimal_station(request):
 
     if best_stations:
         results = []
-        for best_station in best_stations:
-            factors_query = '&'.join([f'factor={factor}' for factor in factors])
-            redirect_url_pc = f"http://ec2-52-64-207-15.ap-southeast-2.compute.amazonaws.com:8080/api/CGPT/query/?station_name={best_station['station_name']}&{factors_query}&view_type='pc'"
-            redirect_url_mobile = f"http://ec2-52-64-207-15.ap-southeast-2.compute.amazonaws.com:8080/api/CGPT/query/?station_name={best_station['station_name']}&{factors_query}&view_type='mobile'"
-            # Make a request to the redirect_url
-            try:
-                response = requests.get(redirect_url_pc)
-                response.raise_for_status()
-                chatgpt_response_pc = response.json()
-            except requests.exceptions.RequestException as e:
-                chatgpt_response_pc = {"error": str(e)}
-                
-            try:
-                response = requests.get(redirect_url_mobile)
-                response.raise_for_status()
-                chatgpt_response_mobile = response.json()
-            except requests.exceptions.RequestException as e:
-                chatgpt_response_mobile = {"error": str(e)}    
-            
-            result = {
-                "station_name": best_station['station_name'],
-                "coordinates": {"lon": best_station['y'], "lat": best_station['x']},
-                "factors": factors,
-                "chatgpt_response_pc": chatgpt_response_pc,  # Add the response from the URL
-                "chatgpt_response_mobile": chatgpt_response_mobile
-            }
-            results.append(result)
-            # print(best_station['x'], best_station['y'])
-        
+
+        with ThreadPoolExecutor(max_workers=4) as executor:
+            futures = [
+                executor.submit(process_station_requests, best_station, factors)
+                for best_station in best_stations
+            ]
+            for future in as_completed(futures):
+                results.append(future.result())
+
         return Response({"best_stations": results})
     else:
         return Response({"error": "No optimal station found"}, status=404)

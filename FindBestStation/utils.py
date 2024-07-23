@@ -1,23 +1,41 @@
 import requests
-from math import radians, sin, cos, sqrt, atan2
 from dotenv import load_dotenv
 import os
 from .models import Station
 from pyproj import Transformer, CRS
 import requests
-import pandas as pd
-from bs4 import BeautifulSoup
+import time
 import urllib.parse
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 load_dotenv()
 KAKAO_API_KEY = os.getenv("KAKAO_API_KEY")
 NAVER_CLIENT_ID = os.getenv("NAVER_CLIENT_ID")
 NAVER_CLIENT_SECRET = os.getenv("NAVER_CLIENT_SECRET")
-OD_SAY_API_KEY = os.getenv("OD_SAY_API_KEY")
 FORMAT = "json"
 search_url = f"https://dapi.kakao.com/v2/local/search/keyword.{FORMAT}"
 transcoord_url = f"https://dapi.kakao.com/v2/local/geo/transcoord.{FORMAT}"  # target URL
+api_keys = []
+api_key_idx = 0
 
+def load_api_keys():
+    global api_keys
+    idx = 1
+    while True:
+        key = os.getenv(f'ODSAY_API_KEY{idx}')
+        if key is None:
+            break
+        api_keys.append(key)
+        idx += 1
+        
+def get_next_api_key():
+    global api_key_idx
+    key = api_keys[api_key_idx]
+    api_key_idx = (api_key_idx + 1) % N
+    return key
+
+load_api_keys()
+N = len(api_keys)  # API 키의 총 개수
 
 # EPSG:5179 좌표계 = 네이버 지도 좌표계
 crs_epsg5179 = CRS.from_epsg(5179)
@@ -47,13 +65,8 @@ def is_within_seoul(lon, lat):
         if documents:
             region_1depth_name = documents[0].get('region_1depth_name', '')
             print(region_1depth_name)
-            if '서울특별시' in region_1depth_name:
-                return True
-            #elif '경기도' in region_1depth_name:
-                #print(documents[0].get('region_2depth_name', ''))
-                #return documents[0].get('region_2depth_name', '')
-    # print("서울 아님")
-    return False
+            return (region_1depth_name)
+            
 
 def find_nearest_seoul(lon, lat):
     url = "https://dapi.kakao.com/v2/local/search/keyword.json"
@@ -62,7 +75,7 @@ def find_nearest_seoul(lon, lat):
         "query": "서울",
         "x": lon,
         "y": lat,
-        "radius": 20000,  # 50km 내에서 검색
+        "radius": 20000,  # 20km 내에서 검색
         "sort": "distance"
     }
     
@@ -76,34 +89,41 @@ def find_nearest_seoul(lon, lat):
             nearest_lat = float(nearest_location['y'])
             return nearest_lon, nearest_lat
         else:
-            raise ValueError("No Seoul location found within 50km radius.")
+            raise ValueError("No Seoul location found within 20km radius.")
     else:
         raise ValueError("Error while searching for nearest Seoul location.")
 
-def calculate_midpoint(locations):
-    # print(locations)
+def adjust_locations_to_seoul(locations):
+    adjusted_locations = []
+    
+    for loc in locations:
+        print(loc)
+        lon, lat = loc['lon'], loc['lat']
+        if is_within_seoul(lon, lat) == '서울특별시':
+            adjusted_locations.append({'lon': lon, 'lat': lat})
+        else:
+            try:
+                lon, lat = find_nearest_seoul(lon, lat)
+                print(f"Adjusted location to Seoul: lon={lon}, lat={lat}")
+                adjusted_locations.append({'lon': lon, 'lat': lat})
+            except ValueError as e:
+                print(e)
+                return None  
+            
+    return adjusted_locations
 
-    # WGS84 좌표를 EPSG:5179로 변환
-    epsg5179_coords = [wgs84_to_epsg5179(loc['lon'], loc['lat']) for loc in locations]
-    # print(epsg5179_coords)
-    # 중간점 계산
+def calculate_midpoint(locations):
+    
+    adjusted_locations = adjust_locations_to_seoul(locations)
+    if adjusted_locations is None:
+        return 0, 0
+    
+    epsg5179_coords = [wgs84_to_epsg5179(loc['lon'], loc['lat']) for loc in adjusted_locations]
+
     midpoint_x = sum(coord[0] for coord in epsg5179_coords) / len(epsg5179_coords)
     midpoint_y = sum(coord[1] for coord in epsg5179_coords) / len(epsg5179_coords)
-    # print(f"midpoint_x: {midpoint_x}, midpoint_y: {midpoint_y}")
 
-    # 중간점을 다시 WGS84로 변환
     midpoint_lat, midpoint_lon = epsg5179_to_wgs84(midpoint_y, midpoint_x)
-    # print(f"midpoint_lon: {midpoint_lon}, midpoint_lat: {midpoint_lat}")
-
-    # 중간점이 서울 내에 있는지 확인하고, 아니면 가장 가까운 서울 내 위치로 이동
-    if not is_within_seoul(midpoint_lon, midpoint_lat):
-        try:
-            midpoint_lon, midpoint_lat = find_nearest_seoul(midpoint_lon, midpoint_lat)
-            print(f"Adjusted midpoint_lon: {midpoint_lon}, midpoint_lat: {midpoint_lat}")
-        except ValueError as e:
-            print(e)
-            return 0, 0
-
     return midpoint_lon, midpoint_lat
 
 
@@ -125,7 +145,7 @@ def find_nearest_stations_kakao(midpoint):
     if response.status_code == 200:
         data = response.json()
         stations = []
-        added_station_names = set()  # 중복 역명을 체크하기 위한 집합
+        added_station_names = set() 
         for document in data['documents']:
             station_name_cleaned = document['place_name'].split(' ')[0]
             if station_name_cleaned not in added_station_names:
@@ -137,129 +157,125 @@ def find_nearest_stations_kakao(midpoint):
                 }
                 stations.append(station)
                 added_station_names.add(station_name_cleaned)
-                # print(station)
         return stations
     else:
         print(f"Error in processing request: {response.status_code}")
         return []
-
-# def calculate_distance(lat1, lon1, lat2, lon2):
-#     from math import radians, cos, sin, sqrt, atan2
     
-#     R = 6371000  # 지구 반지름 (미터)
-#     dlat = radians(lat2 - lat1)
-#     dlon = radians(lon2 - lon1)
-#     a = sin(dlat / 2) * sin(dlat / 2) + cos(radians(lat1)) * cos(radians(lat2)) * sin(dlon / 2) * sin(dlon / 2)
-#     c = 2 * atan2(sqrt(a), sqrt(1 - a))
-#     distance = R * c
-#     print(distance)
-#     return distance
 
 def get_transit_time(start_x, start_y, end_x, end_y):
-    # ODsay API 호출 URL 생성
     base_url = "https://api.odsay.com/v1/api/searchPubTransPathT"
+    api_key = get_next_api_key()
     params = {
         "SX": start_x,
         "SY": start_y,
         "EX": end_x,
         "EY": end_y,
-        "apiKey": OD_SAY_API_KEY
+        "apiKey": api_key
     }
     encoded_params = urllib.parse.urlencode(params)
-    # print(f"encodedparams={encoded_params}")
     request_url = f"{base_url}?{encoded_params}"
-    print(request_url)
-    
-    try:
-        response = requests.get(request_url)
-        response.raise_for_status()  # Raise an error for bad status codes
-        # print(f"response={response}")
-        # Assuming the API response is JSON
-        data = response.json()
 
-        # Extract transit time from the response
-        transit_time = None
-        if 'result' in data and 'path' in data['result']:
-            # Find the journey with the minimum duration
-            min_duration = float('inf')
-            for path in data['result']['path']:
-                duration = path['info']['totalTime']
-                if duration < min_duration:
-                    min_duration = duration
-            transit_time = min_duration
-        # print(transit_time)
-        return transit_time
-    
+    retries = 5
+    delay = 0.3
 
-    except requests.exceptions.RequestException as e:
-        print(f"Error fetching transit time: {e}")
-        return None
+    for attempt in range(retries):
+        try:
+            response = requests.get(request_url)
+            response.raise_for_status()
+            data = response.json()
+
+            if 'result' in data and 'path' in data['result']:
+                min_duration = float('inf')
+                for path in data['result']['path']:
+                    duration = path['info']['totalTime']
+                    if duration < min_duration:
+                        min_duration = duration
+                transit_time = min_duration if min_duration != float('inf') else 120
+            else:
+                transit_time = 120
+
+            if transit_time != 120:
+                print(transit_time)
+                return transit_time
+
+        except requests.exceptions.RequestException as e:
+            if response.status_code == 429:  # Too Many Requests
+                print(f"Too many requests. Retrying in {delay} seconds...")
+                time.sleep(delay)
+                delay *= 2  # Exponential backoff
+            else:
+                print(f"Error fetching transit time: {e}")
+                break
+
+        time.sleep(0.3)  # Wait before retrying
+
+    print("Max retries reached or transit time is 120, returning 120")
+    return 120
 
 def find_best_station(stations, user_locations, factors):
     station_scores = []
+    factor_weights = {
+        2: float(os.getenv('FACTOR_2_WEIGHT', 1)),
+        3: float(os.getenv('FACTOR_3_WEIGHT', 1)),
+        4: float(os.getenv('FACTOR_4_WEIGHT', 1)),
+        5: float(os.getenv('FACTOR_5_WEIGHT', 1)),
+        6: float(os.getenv('FACTOR_6_WEIGHT', 1)),
+        7: float(os.getenv('FACTOR_7_WEIGHT', 1))
+    }
     
-    factor_2_weight= os.getenv('FACTOR_2_WEIGHT')
-    factor_3_weight= os.getenv('FACTOR_3_WEIGHT')
-    factor_4_weight= os.getenv('FACTOR_4_WEIGHT')
-    factor_5_weight= os.getenv('FACTOR_5_WEIGHT')
-    factor_6_weight= os.getenv('FACTOR_6_WEIGHT')
-    factor_7_weight= os.getenv('FACTOR_7_WEIGHT')
-
-    for station in stations:
+    def fetch_transit_time_for_station(station, user_location):
+        return get_transit_time(user_location['lon'], user_location['lat'], station['x'], station['y'])
+    
+    def process_station(station):
         try:
             total_transit_time = 0
-            for user_location in user_locations:
-                transit_time = get_transit_time(user_location['lon'], user_location['lat'], station['x'], station['y'])
-                print(f"station={station}")
-                print(f"user_location={user_location}")
-                print(f"transit_time={transit_time}")
-                if transit_time:
-                    total_transit_time += transit_time
-                    print('yes_transit')
-                else:
-                    total_transit_time += float('inf')  # If transit time cannot be fetched, assume it's very large
-                    print('no_transit')
-                    
+            with ThreadPoolExecutor(max_workers=10) as executor:
+                futures = {
+                    executor.submit(fetch_transit_time_for_station, station, user): user
+                    for user in user_locations
+                }
+                
+                for future in as_completed(futures):
+                    try:
+                        transit_time = future.result()
+                        if transit_time:
+                            total_transit_time += transit_time
+                        else:
+                            total_transit_time += float('inf')
+                    except Exception as e:
+                        print(f"Exception occurred: {e}")
+
             station_obj = Station.objects.get(station_name=station['station_name'])
-            print(station_obj)
             
             final_score = 1.0
             for factor in factors:
                 factor_attr = f'factor_{factor}'
-                print(f"factor_attr={factor_attr}")
                 factor_value = getattr(station_obj, factor_attr, 0)
-                print(f"factor_value={factor_value}")
-                if factor == 2:
-                    final_score += factor_value * float(factor_2_weight)
-                    print(f'factor_2 check, factor_value={factor_value}')
-                elif factor == 3:
-                    final_score += factor_value * float(factor_3_weight)
-                    print(f'factor_3 check, factor_value={factor_value}')
-                elif factor == 4:
-                    final_score += factor_value * float(factor_4_weight)
-                    print(f'factor_4 check, factor_value={factor_value}')
-                elif factor == 5:
-                    final_score += factor_value * float(factor_5_weight)
-                    print(f'factor_5 check, factor_value={factor_value}')
-                elif factor == 6:
-                    final_score += factor_value * float(factor_6_weight)
-                    print(f'factor_6 check, factor_value={factor_value}')
-                elif factor == 7:
-                    final_score += factor_value * float(factor_7_weight)
-                    print(f'factor_7 check, factor_value={factor_value}')
-            # total_transit_time이 0인 경우를 처리하여 최종 점수 계산
+                final_score += factor_value * factor_weights[factor]
+                
             if total_transit_time > 0:
-                station_final_score = total_transit_time/final_score
+                station_final_score = total_transit_time / final_score
             else:
                 station_final_score = float('inf')
+            print(f'station:{station}, station_final_score:{station_final_score}')
+            return (station, station_final_score)
 
-            station_scores.append((station, station_final_score))
-            print(f"station:{station}, station_final_score={station_final_score}")
+        except Exception as e:
+            print(f"Error processing station {station['station_name']}: {e}")
+            return (station, float('inf'))
 
-        except Station.DoesNotExist:
-            print(f"Station with cleaned name {station['station_name']} does not exist.")
-            continue
+    try:
+        with ThreadPoolExecutor(max_workers=5) as station_executor:
+            station_futures = {station_executor.submit(process_station, station): station for station in stations}
 
-    # 점수가 낮은 순서로 정렬하고 상위 3개 반환
-    station_scores.sort(key=lambda x: x[1])
-    return [station for station, score in station_scores[:3]]
+            for future in as_completed(station_futures):
+                station, station_score = future.result()
+                station_scores.append((station, station_score))
+
+        station_scores.sort(key=lambda x: x[1])
+        return [station for station, score in station_scores[:3]]
+
+    except Exception as e:
+        print(f"Error processing stations: {e}")
+        return []
