@@ -178,25 +178,29 @@ def get_transit_time(start_x, start_y, end_x, end_y):
     }
     encoded_params = urllib.parse.urlencode(params)
     request_url = f"{base_url}?{encoded_params}"
-    
+
     retries = 5
     delay = 0.3
+
     for attempt in range(retries):
         try:
             response = requests.get(request_url)
             response.raise_for_status()
             data = response.json()
 
-            transit_time = 120
             if 'result' in data and 'path' in data['result']:
                 min_duration = float('inf')
                 for path in data['result']['path']:
                     duration = path['info']['totalTime']
                     if duration < min_duration:
                         min_duration = duration
-                transit_time = min_duration
-            print(transit_time)
-            return transit_time
+                transit_time = min_duration if min_duration != float('inf') else 120
+            else:
+                transit_time = 120
+
+            if transit_time != 120:
+                print(transit_time)
+                return transit_time
 
         except requests.exceptions.RequestException as e:
             if response.status_code == 429:  # Too Many Requests
@@ -206,6 +210,10 @@ def get_transit_time(start_x, start_y, end_x, end_y):
             else:
                 print(f"Error fetching transit time: {e}")
                 break
+
+        time.sleep(0.3)  # Wait before retrying
+
+    print("Max retries reached or transit time is 120, returning 120")
     return 120
 
 def find_best_station(stations, user_locations, factors):
@@ -237,7 +245,7 @@ def find_best_station(stations, user_locations, factors):
                         if transit_time:
                             total_transit_time += transit_time
                         else:
-                            total_transit_time += float('inf')  
+                            total_transit_time += float('inf')
                     except Exception as e:
                         print(f"Exception occurred: {e}")
 
@@ -269,11 +277,12 @@ def find_best_station(stations, user_locations, factors):
                 station_scores.append((station, station_score))
 
         station_scores.sort(key=lambda x: x[1])
-        return [station for station, score in station_scores[:3]] 
+        return [station for station, score in station_scores[:3]]
 
     except Exception as e:
         print(f"Error processing stations: {e}")
         return []
+
     
 # def get_transit_time(start_x, start_y, end_x, end_y):
 #     base_url = "https://api.odsay.com/v1/api/searchPubTransPathT"
