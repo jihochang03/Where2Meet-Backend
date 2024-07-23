@@ -228,7 +228,7 @@ def find_best_station(stations, user_locations, factors):
     def process_station(station):
         try:
             total_transit_time = 0
-            with ThreadPoolExecutor(max_workers=10) as executor:
+            with ThreadPoolExecutor(max_workers=5) as executor:
                 futures = [
                     executor.submit(fetch_transit_time_for_station, station, user)
                     for user in user_locations
@@ -258,7 +258,7 @@ def find_best_station(stations, user_locations, factors):
             return (station, float('inf'))
 
     try:
-        with ThreadPoolExecutor(max_workers=4) as station_executor:
+        with ThreadPoolExecutor(max_workers=3) as station_executor:
             station_futures = {station_executor.submit(process_station, station): station for station in stations}
 
             for future in as_completed(station_futures):
