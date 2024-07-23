@@ -62,6 +62,35 @@ FORMAT = "json"
 search_url = f"https://dapi.kakao.com/v2/local/search/keyword.{FORMAT}"
 transcoord_url = f"https://dapi.kakao.com/v2/local/geo/transcoord.{FORMAT}"
 
+def process_station_requests(best_station, factors):
+    factors_query = '&'.join([f'factor={factor}' for factor in factors])
+    base_url = "http://ec2-52-64-207-15.ap-southeast-2.compute.amazonaws.com:8080/api/CGPT/query"
+    redirect_url_pc = f"{base_url}/?station_name={best_station['station_name']}&{factors_query}&view_type='pc'"
+    redirect_url_mobile = f"{base_url}/?station_name={best_station['station_name']}&{factors_query}&view_type='mobile'"
+
+    def fetch_url(url):
+        try:
+            response = requests.get(url)
+            response.raise_for_status()
+            return response.json()
+        except requests.exceptions.RequestException as e:
+            return {"error": str(e)}
+
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        future_pc = executor.submit(fetch_url, redirect_url_pc)
+        future_mobile = executor.submit(fetch_url, redirect_url_mobile)
+
+        chatgpt_response_pc = future_pc.result()
+        chatgpt_response_mobile = future_mobile.result()
+
+    return {
+        "station_name": best_station['station_name'],
+        "coordinates": {"lon": best_station['y'], "lat": best_station['x']},
+        "factors": factors,
+        "chatgpt_response_pc": chatgpt_response_pc,
+        "chatgpt_response_mobile": chatgpt_response_mobile
+    }
+
 
 @swagger_auto_schema(
     method='post',
@@ -106,36 +135,6 @@ transcoord_url = f"https://dapi.kakao.com/v2/local/geo/transcoord.{FORMAT}"
         404: 'No optimal station found',
     }
 )
-
-def process_station_requests(best_station, factors):
-    factors_query = '&'.join([f'factor={factor}' for factor in factors])
-    base_url = "http://ec2-52-64-207-15.ap-southeast-2.compute.amazonaws.com:8080/api/CGPT/query"
-    redirect_url_pc = f"{base_url}/?station_name={best_station['station_name']}&{factors_query}&view_type='pc'"
-    redirect_url_mobile = f"{base_url}/?station_name={best_station['station_name']}&{factors_query}&view_type='mobile'"
-
-    def fetch_url(url):
-        try:
-            response = requests.get(url)
-            response.raise_for_status()
-            return response.json()
-        except requests.exceptions.RequestException as e:
-            return {"error": str(e)}
-
-    with ThreadPoolExecutor(max_workers=2) as executor:
-        future_pc = executor.submit(fetch_url, redirect_url_pc)
-        future_mobile = executor.submit(fetch_url, redirect_url_mobile)
-
-        chatgpt_response_pc = future_pc.result()
-        chatgpt_response_mobile = future_mobile.result()
-
-    return {
-        "station_name": best_station['station_name'],
-        "coordinates": {"lon": best_station['y'], "lat": best_station['x']},
-        "factors": factors,
-        "chatgpt_response_pc": chatgpt_response_pc,
-        "chatgpt_response_mobile": chatgpt_response_mobile
-    }
-
 
 @api_view(['POST', 'GET'])
 def find_optimal_station(request):
