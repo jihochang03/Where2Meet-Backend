@@ -1,15 +1,11 @@
 import requests
-from math import radians, sin, cos, sqrt, atan2
 from dotenv import load_dotenv
 import os
 from .models import Station
 from pyproj import Transformer, CRS
 import requests
-import pandas as pd
-from bs4 import BeautifulSoup
 import time
 import urllib.parse
-from queue import Queue
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 load_dotenv()
@@ -166,23 +162,6 @@ def find_nearest_stations_kakao(midpoint):
         print(f"Error in processing request: {response.status_code}")
         return []
     
-def fetch_with_retries(request_url, retries=5, delay=0.3):
-    for attempt in range(retries):
-        try:
-            response = requests.get(request_url)
-            response.raise_for_status()
-            data = response.json()
-            return data
-        except requests.exceptions.RequestException as e:
-            if response.status_code == 429:  # Too Many Requests
-                print(f"Too many requests. Retrying in {delay} seconds...")
-                time.sleep(delay)
-                delay *= 2  # Exponential backoff
-            else:
-                print(f"Error fetching data: {e}")
-                break
-        time.sleep(0.3)  # Wait before retrying
-    return None
 
 def get_transit_time(start_x, start_y, end_x, end_y):
     base_url = "https://api.odsay.com/v1/api/searchPubTransPathT"
@@ -197,17 +176,40 @@ def get_transit_time(start_x, start_y, end_x, end_y):
     encoded_params = urllib.parse.urlencode(params)
     request_url = f"{base_url}?{encoded_params}"
 
-    data = fetch_with_retries(request_url)
+    retries = 5
+    delay = 0.3
 
-    if data and 'result' in data and 'path' in data['result']:
-        min_duration = min(
-            (path['info']['totalTime'] for path in data['result']['path']),
-            default=120
-        )
-        transit_time = min_duration if min_duration != float('inf') else 120
-        if transit_time != 120:
-            print(transit_time)
-            return transit_time
+    for attempt in range(retries):
+        try:
+            response = requests.get(request_url)
+            response.raise_for_status()
+            data = response.json()
+
+            if 'result' in data and 'path' in data['result']:
+                min_duration = float('inf')
+                for path in data['result']['path']:
+                    duration = path['info']['totalTime']
+                    if duration < min_duration:
+                        min_duration = duration
+                transit_time = min_duration if min_duration != float('inf') else 120
+            else:
+                transit_time = 120
+
+            if transit_time != 120:
+                print(transit_time)
+                return transit_time
+
+        except requests.exceptions.RequestException as e:
+            if response.status_code == 429:  # Too Many Requests
+                print(f"Too many requests. Retrying in {delay} seconds...")
+                time.sleep(delay)
+                delay *= 2  # Exponential backoff
+            else:
+                print(f"Error fetching transit time: {e}")
+                break
+
+        time.sleep(0.3)  # Wait before retrying
+
     print("Max retries reached or transit time is 120, returning 120")
     return 120
 
@@ -221,35 +223,41 @@ def find_best_station(stations, user_locations, factors):
         6: float(os.getenv('FACTOR_6_WEIGHT', 1)),
         7: float(os.getenv('FACTOR_7_WEIGHT', 1))
     }
-
+    
     def fetch_transit_time_for_station(station, user_location):
         return get_transit_time(user_location['lon'], user_location['lat'], station['x'], station['y'])
-
+    
     def process_station(station):
         try:
             total_transit_time = 0
-            with ThreadPoolExecutor(max_workers=5) as executor:
-                futures = [
-                    executor.submit(fetch_transit_time_for_station, station, user)
+            with ThreadPoolExecutor(max_workers=10) as executor:
+                futures = {
+                    executor.submit(fetch_transit_time_for_station, station, user): user
                     for user in user_locations
-                ]
+                }
+                
                 for future in as_completed(futures):
                     try:
                         transit_time = future.result()
-                        total_transit_time += transit_time
+                        if transit_time:
+                            total_transit_time += transit_time
+                        else:
+                            total_transit_time += float('inf')
                     except Exception as e:
                         print(f"Exception occurred: {e}")
-                        total_transit_time += float('inf')
 
             station_obj = Station.objects.get(station_name=station['station_name'])
-
+            
             final_score = 1.0
             for factor in factors:
                 factor_attr = f'factor_{factor}'
                 factor_value = getattr(station_obj, factor_attr, 0)
                 final_score += factor_value * factor_weights[factor]
-
-            station_final_score = total_transit_time / final_score if total_transit_time > 0 else float('inf')
+                
+            if total_transit_time > 0:
+                station_final_score = total_transit_time / final_score
+            else:
+                station_final_score = float('inf')
             print(f'station:{station}, station_final_score:{station_final_score}')
             return (station, station_final_score)
 
