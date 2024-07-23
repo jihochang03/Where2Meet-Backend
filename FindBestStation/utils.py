@@ -269,7 +269,7 @@ def find_best_station(stations, user_locations, factors):
             return (station, float('inf'))
 
     try:
-        with ThreadPoolExecutor(max_workers=10) as station_executor:
+        with ThreadPoolExecutor(max_workers=5) as station_executor:
             station_futures = {station_executor.submit(process_station, station): station for station in stations}
 
             for future in as_completed(station_futures):
