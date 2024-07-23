@@ -176,7 +176,7 @@ def get_transit_time(start_x, start_y, end_x, end_y):
     encoded_params = urllib.parse.urlencode(params)
     request_url = f"{base_url}?{encoded_params}"
 
-    retries = 5
+    retries = 10
     delay = 0.3
 
     for attempt in range(retries):
@@ -266,7 +266,7 @@ def find_best_station(stations, user_locations, factors):
             return (station, float('inf'))
 
     try:
-        with ThreadPoolExecutor(max_workers=4) as station_executor:
+        with ThreadPoolExecutor(max_workers=5) as station_executor:
             station_futures = {station_executor.submit(process_station, station): station for station in stations}
 
             for future in as_completed(station_futures):

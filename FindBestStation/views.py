@@ -76,7 +76,7 @@ def process_station_requests(best_station, factors):
         except requests.exceptions.RequestException as e:
             return {"error": str(e)}
 
-    with ThreadPoolExecutor(max_workers=2) as executor:
+    with ThreadPoolExecutor(max_workers=3) as executor:
         future_pc = executor.submit(fetch_url, redirect_url_pc)
         future_mobile = executor.submit(fetch_url, redirect_url_mobile)
 
