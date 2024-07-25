@@ -207,15 +207,13 @@ def get_transit_time(start_x, start_y, end_x, end_y):
                 return transit_time
 
         except requests.exceptions.RequestException as e:
-            if response.status_code == 429:  # Too Many Requests
+            if response.status_code == 429: 
                 print(f"Too many requests. Retrying in {delay} seconds...")
-                time.sleep(delay)
-                delay *= 2  # Exponential backoff
             else:
                 print(f"Error fetching transit time: {e}")
                 break
 
-        time.sleep(0.3)  # Wait before retrying
+        time.sleep(delay) 
 
     print("Max retries reached or transit time is 120, returning 120")
     return 120
