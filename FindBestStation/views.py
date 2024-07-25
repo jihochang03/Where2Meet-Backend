@@ -63,11 +63,16 @@ search_url = f"https://dapi.kakao.com/v2/local/search/keyword.{FORMAT}"
 transcoord_url = f"https://dapi.kakao.com/v2/local/geo/transcoord.{FORMAT}"
 
 def process_station_requests(best_station, factors):
-    factors_query = '&'.join([f'factor={factor}' for factor in factors])
-    base_url = "http://ec2-52-64-207-15.ap-southeast-2.compute.amazonaws.com:8080/api/CGPT/query"
-    redirect_url_pc = f"{base_url}/?station_name={best_station['station_name']}&{factors_query}&view_type='pc'"
-    redirect_url_mobile = f"{base_url}/?station_name={best_station['station_name']}&{factors_query}&view_type='mobile'"
-
+    if factors:
+        factors_query = '&'.join([f'factor={factor}' for factor in factors])
+        base_url = "http://ec2-52-64-207-15.ap-southeast-2.compute.amazonaws.com:8080/api/CGPT/query"
+        redirect_url_pc = f"{base_url}/?station_name={best_station['station_name']}&{factors_query}&view_type='pc'"
+        redirect_url_mobile = f"{base_url}/?station_name={best_station['station_name']}&{factors_query}&view_type='mobile'"
+    else:
+        base_url = "http://ec2-52-64-207-15.ap-southeast-2.compute.amazonaws.com:8080/api/CGPT/query"
+        redirect_url_pc = f"{base_url}/?station_name={best_station['station_name']}&view_type='pc'"
+        redirect_url_mobile = f"{base_url}/?station_name={best_station['station_name']}&view_type='mobile'"
+        
     def fetch_url(url):
         try:
             response = requests.get(url)
