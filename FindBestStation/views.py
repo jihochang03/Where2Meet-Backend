@@ -63,11 +63,16 @@ search_url = f"https://dapi.kakao.com/v2/local/search/keyword.{FORMAT}"
 transcoord_url = f"https://dapi.kakao.com/v2/local/geo/transcoord.{FORMAT}"
 
 def process_station_requests(best_station, factors):
-    factors_query = '&'.join([f'factor={factor}' for factor in factors])
-    base_url = "http://ec2-52-64-207-15.ap-southeast-2.compute.amazonaws.com:8080/api/CGPT/query"
-    redirect_url_pc = f"{base_url}/?station_name={best_station['station_name']}&{factors_query}&view_type='pc'"
-    redirect_url_mobile = f"{base_url}/?station_name={best_station['station_name']}&{factors_query}&view_type='mobile'"
-
+    if factors:
+        factors_query = '&'.join([f'factor={factor}' for factor in factors])
+        base_url = "http://ec2-52-64-207-15.ap-southeast-2.compute.amazonaws.com:8080/api/CGPT/query"
+        redirect_url_pc = f"{base_url}/?station_name={best_station['station_name']}&{factors_query}&view_type='pc'"
+        redirect_url_mobile = f"{base_url}/?station_name={best_station['station_name']}&{factors_query}&view_type='mobile'"
+    else:
+        base_url = "http://ec2-52-64-207-15.ap-southeast-2.compute.amazonaws.com:8080/api/CGPT/query"
+        redirect_url_pc = f"{base_url}/?station_name={best_station['station_name']}&view_type='pc'"
+        redirect_url_mobile = f"{base_url}/?station_name={best_station['station_name']}&view_type='mobile'"
+        
     def fetch_url(url):
         try:
             response = requests.get(url)
@@ -76,7 +81,7 @@ def process_station_requests(best_station, factors):
         except requests.exceptions.RequestException as e:
             return {"error": str(e)}
 
-    with ThreadPoolExecutor(max_workers=2) as executor:
+    with ThreadPoolExecutor(max_workers=3) as executor:
         future_pc = executor.submit(fetch_url, redirect_url_pc)
         future_mobile = executor.submit(fetch_url, redirect_url_mobile)
 
@@ -85,7 +90,7 @@ def process_station_requests(best_station, factors):
 
     return {
         "station_name": best_station['station_name'],
-        "coordinates": {"lon": best_station['y'], "lat": best_station['x']},
+        "coordinates": {"lon": best_station['x'], "lat": best_station['y']},
         "factors": factors,
         "chatgpt_response_pc": chatgpt_response_pc,
         "chatgpt_response_mobile": chatgpt_response_mobile
@@ -142,7 +147,7 @@ def find_optimal_station(request):
         locations = request.data.get('locations', [])
         factors = request.data.get('factors', [])
         try:
-            locations = [{'lon': loc['lat'], 'lat': loc['lon']} for loc in locations]
+            locations = [{'lon': loc['lon'], 'lat': loc['lat']} for loc in locations]
             factors = [int(factor) for factor in factors]
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=400)
@@ -152,7 +157,7 @@ def find_optimal_station(request):
         # Convert locations and factors to appropriate types
         try:
             locations = [tuple(map(float, loc.split(','))) for loc in locations]
-            locations = [{'lon': lat, 'lat': lon} for lon, lat in locations]
+            locations = [{'lon': lon, 'lat': lat} for lon, lat in locations]
             factors = [int(factor) for factor in factors]
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=400)

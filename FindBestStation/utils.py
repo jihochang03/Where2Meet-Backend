@@ -93,23 +93,30 @@ def find_nearest_seoul(lon, lat):
     else:
         raise ValueError("Error while searching for nearest Seoul location.")
 
+def adjust_location(loc):
+    lon, lat = loc['lon'], loc['lat']
+    if is_within_seoul(lon, lat) == '서울특별시':
+        return {'lon': lon, 'lat': lat}
+    else:
+        try:
+            lon, lat = find_nearest_seoul(lon, lat)
+            print(f"Adjusted location to Seoul: lon={lon}, lat={lat}")
+            return {'lon': lon, 'lat': lat}
+        except ValueError as e:
+            print(e)
+            return None
+
 def adjust_locations_to_seoul(locations):
     adjusted_locations = []
-    
-    for loc in locations:
-        print(loc)
-        lon, lat = loc['lon'], loc['lat']
-        if is_within_seoul(lon, lat) == '서울특별시':
-            adjusted_locations.append({'lon': lon, 'lat': lat})
-        else:
-            try:
-                lon, lat = find_nearest_seoul(lon, lat)
-                print(f"Adjusted location to Seoul: lon={lon}, lat={lat}")
-                adjusted_locations.append({'lon': lon, 'lat': lat})
-            except ValueError as e:
-                print(e)
-                return None  
-            
+    with ThreadPoolExecutor(max_workers=10) as executor:
+        future_to_location = {executor.submit(adjust_location, loc): loc for loc in locations}
+        for future in as_completed(future_to_location):
+            result = future.result()
+            if result:
+                adjusted_locations.append(result)
+            else:
+                print(f"Failed to adjust location: {future_to_location[future]}")
+                return None
     return adjusted_locations
 
 def calculate_midpoint(locations):
@@ -176,7 +183,7 @@ def get_transit_time(start_x, start_y, end_x, end_y):
     encoded_params = urllib.parse.urlencode(params)
     request_url = f"{base_url}?{encoded_params}"
 
-    retries = 5
+    retries = 10
     delay = 0.3
 
     for attempt in range(retries):
@@ -266,7 +273,7 @@ def find_best_station(stations, user_locations, factors):
             return (station, float('inf'))
 
     try:
-        with ThreadPoolExecutor(max_workers=5) as station_executor:
+        with ThreadPoolExecutor(max_workers=10) as station_executor:
             station_futures = {station_executor.submit(process_station, station): station for station in stations}
 
             for future in as_completed(station_futures):
@@ -278,4 +285,3 @@ def find_best_station(stations, user_locations, factors):
 
     except Exception as e:
         print(f"Error processing stations: {e}")
-        return []
