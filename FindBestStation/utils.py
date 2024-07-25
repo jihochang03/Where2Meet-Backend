@@ -285,4 +285,3 @@ def find_best_station(stations, user_locations, factors):
 
     except Exception as e:
         print(f"Error processing stations: {e}")
-        return []
