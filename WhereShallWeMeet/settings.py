@@ -21,17 +21,6 @@ environ.Env.read_env(
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = env('SECRET_KEY')
 
-# DATABASES = {
-#     'default': {
-#         'ENGINE': 'django.db.backends.postgresql',
-#         'NAME': os.getenv('RDS_DB_NAME'),
-#         'USER': os.getenv('RDS_USERNAME'),
-#         'PASSWORD': os.getenv('RDS_PASSWORD'),
-#         'HOST': os.getenv('RDS_HOSTNAME'),
-#         'PORT': os.getenv('RDS_PORT'),
-#     }
-# }
-
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
@@ -58,6 +47,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+
     'rest_framework',
     'corsheaders',
     'CGPT',
@@ -117,7 +107,6 @@ WSGI_APPLICATION = 'WhereShallWeMeet.wsgi.application'
 
 # Database
 # https://docs.djangoproject.com/en/5.0/ref/settings/#databases
-
 # Password validation
 # https://docs.djangoproject.com/en/5.0/ref/settings/#auth-password-validators
 
