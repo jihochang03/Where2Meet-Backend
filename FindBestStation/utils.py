@@ -211,7 +211,8 @@ def get_transit_time(start_x, start_y, end_x, end_y):
                 print(f"Too many requests. Retrying in {delay} seconds...")
             else:
                 print(f"Error fetching transit time: {e}")
-                break
+                api_key_idx+=1
+                api_key = get_next_api_key()
 
         time.sleep(delay) 
 
