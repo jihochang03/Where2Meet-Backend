@@ -61,7 +61,7 @@ class QueryView(APIView):
         factors = request.query_params.getlist('factor')
         view_type = request.query_params.get('view_type')  # 'pc' 또는 'mobile'
     
-        if not station_name or not factors:
+        if not station_name:
             return Response({'error': 'station_name과 적어도 하나의 factor가 필요합니다.'}, status=status.HTTP_400_BAD_REQUEST)
     
         factor_keywords_list = [factor_keywords[factor] for factor in factors]
