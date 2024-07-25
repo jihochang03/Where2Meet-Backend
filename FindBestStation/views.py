@@ -85,7 +85,7 @@ def process_station_requests(best_station, factors):
 
     return {
         "station_name": best_station['station_name'],
-        "coordinates": {"lon": best_station['y'], "lat": best_station['x']},
+        "coordinates": {"lon": best_station['x'], "lat": best_station['y']},
         "factors": factors,
         "chatgpt_response_pc": chatgpt_response_pc,
         "chatgpt_response_mobile": chatgpt_response_mobile
