@@ -107,18 +107,27 @@ def adjust_location(loc):
             print(e)
             return None
     elif location_first == '경기도':
-        if location_second== '용인시' or '성남시' or '여주시' or '이천시':
-            return {'lon': 127.034, 'lat': 37.485  }
-        elif location_second=='고양시':
+        if location_second=='고양시':
             return {'lon': 126.801, 'lat': 37.563 }
-        elif location_second=='과천시':
-            return {'lon': 126.801, 'lat': 37.563 }
-        elif location_second=='광명시':
-            return {'lon': 126.801, 'lat': 37.563 }
-        elif location_second=='광주시':
-            return {'lon': 126.801, 'lat': 37.563 }
-        elif location_second=='구리시':
-            return {'lon': 126.801, 'lat': 37.563 }
+        elif location_second=='동두천시' or '연천군' or '의정부시' or '포천시':
+            return {'lon': 127.046, 'lat': 37.689 }
+        elif location_second=='광명시' or '의왕시':
+            return {'lon': 126.894, 'lat': 37.456 }
+        elif location_second=='김포시':
+            return {'lon': 126.801, 'lat': 37.562 }
+        elif location_second=='과천시' or '군포시' or '수원시' or '시흥시':
+            return {'lon': 126.989, 'lat': 37.464 }
+        elif location_second=='파주시':
+            return {'lon': 126.896, 'lat': 37.581 }
+        elif location_second=='가평군' or '구리시' or '남양주시' or '양평군':
+            return {'lon': 127.108, 'lat': 37.607 }
+        elif location_second=='부천시':
+            return {'lon': 126.824, 'lat': 37.492 }
+        elif location_second=='광주시' or '용인시' or '성남시' or '여주시' or '이천시' or '안산시' or '안성시' or '오산시' or '평택시' or '화성시':
+            return {'lon': 127.054, 'lat': 37.448 }
+        elif location_second=='하남시':
+            return {'lon': 127.176, 'lat': 37.558 }
+        
         
         
 
