@@ -260,9 +260,9 @@ def find_best_station(stations, user_locations, factors):
             normalized_transit_time = (total_transit_time - min_transit_time) / range_transit_time
 
             try:
-                station_obj = Station.objects.get(station_code=station['station_code'])
+                station_obj = Station.objects.get(station_name=station['station_name'])
             except Station.DoesNotExist:
-                print(f"Station {station['station_code']} not found in the database.")
+                print(f"Station {station['station_name']} not found in the database.")
                 continue
 
             factor_score = normalized_transit_time
