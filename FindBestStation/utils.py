@@ -127,6 +127,7 @@ def adjust_location(loc):
             return {'lon': 127.054, 'lat': 37.448 }
         elif location_second=='하남시':
             return {'lon': 127.176, 'lat': 37.558 }
+        else return None
         
         
         
