@@ -284,6 +284,8 @@ def find_best_station(stations, user_locations, factors):
             station_obj = Station.objects.get(station_name=station['station_name'])
             
             final_score = 1.0
+            if factors == None:
+                factors=[2,3,4,5,6,7]
             for factor in factors:
                 factor_attr = f'factor_{factor}'
                 factor_value = getattr(station_obj, factor_attr, 0)
