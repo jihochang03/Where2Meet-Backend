@@ -220,64 +220,136 @@ def find_best_station(stations, user_locations, factors):
         6: float(os.getenv('FACTOR_6_WEIGHT', 1)),
         7: float(os.getenv('FACTOR_7_WEIGHT', 1))
     }
-    total_transit_times = []
+    
+    def fetch_transit_time_for_station(station, user_location):
+        return get_transit_time(user_location['lon'], user_location['lat'], station['x'], station['y'])
+    
+    def process_station(station):
+        try:
+            total_transit_time = 0
+            with ThreadPoolExecutor(max_workers=10) as executor:
+                futures = {
+                    executor.submit(fetch_transit_time_for_station, station, user): user
+                    for user in user_locations
+                }
+                
+                for future in as_completed(futures):
+                    try:
+                        transit_time = future.result()
+                        if transit_time:
+                            total_transit_time += transit_time
+                        else:
+                            total_transit_time += float('inf')
+                    except Exception as e:
+                        print(f"Exception occurred: {e}")
 
-    def fetch_total_transit_time(station):
-        total_transit_time = 0
-        with ThreadPoolExecutor(max_workers=len(user_locations)) as executor:
-            futures = {
-                executor.submit(get_transit_time, user['lon'], user['lat'], station['x'], station['y']): user
-                for user in user_locations
-            }
-            for future in as_completed(futures):
-                try:
-                    transit_time = future.result()
-                    if transit_time is None:
-                        transit_time = float('inf')
-                    total_transit_time += transit_time
-                except Exception as e:
-                    print(f"Exception occurred while fetching transit time: {e}")
-                    total_transit_time += float('inf')
+            station_obj = Station.objects.get(station_name=station['station_name'])
+            
+            final_score = 1.0
+            for factor in factors:
+                factor_attr = f'factor_{factor}'
+                factor_value = getattr(station_obj, factor_attr, 0)
+                final_score += factor_value * factor_weights[factor]
+                
 
-        total_transit_times.append(total_transit_time)
-        return total_transit_time
+            print(f'station:{station}, final_score:{final_score}, total_transit_time:{total_transit_time}')
+            return (station, final_score, total_transit_time)
+
+        except Exception as e:
+            print(f"Error processing station {station['station_name']}: {e}")
+            return (station, float('inf'), float('inf'))
 
     try:
-        with ThreadPoolExecutor(max_workers=len(stations)) as station_executor:
-            station_futures = {station_executor.submit(fetch_total_transit_time, station): station for station in stations}
-            results = []
-
+        with ThreadPoolExecutor(max_workers=10) as station_executor:
+            station_futures = {station_executor.submit(process_station, station): station for station in stations}
+            transit_times = []
             for future in as_completed(station_futures):
-                station = station_futures[future]
-                total_transit_time = future.result()
-                results.append((station, total_transit_time))
+                station, station_score, transit_time = future.result()
+                station_scores.append((station, station_score))
+                transit_times.append(transit_time)
+        
+        max_time = max(transit_times)
+        min_time = min(transit_times)
 
-        min_transit_time = min(total_transit_times)
-        max_transit_time = max(total_transit_times)
-        range_transit_time = (max_transit_time - min_transit_time) if max_transit_time > min_transit_time else 1
+        factor1 = [(1-((time - min_time)/(max_time-min_time))) for time in transit_times]
 
-        for station, total_transit_time in results:
-            normalized_transit_time = (total_transit_time - min_transit_time) / range_transit_time
+        final_station_scores = [(station, station_score + factor1 * 0.5) for (station, station_score) in station_scores]
 
-            try:
-                station_obj = Station.objects.get(station_name=station['station_name'])
-            except Station.DoesNotExist:
-                print(f"Station {station['station_name']} not found in the database.")
-                continue
-
-            factor_score = normalized_transit_time
-
-            for factor in range(2, 8):
-                factor_score += getattr(station_obj, f'factor_{factor}', 0)
-
-            for factor in factors:
-                factor_score += getattr(station_obj, f'factor_{factor}', 0) * factor_weights[factor]
-
-            station_scores.append((station, factor_score))
-
-        station_scores.sort(key=lambda x: x[1], reverse=True)
-        return [station for station, score in station_scores[:3]]
+        
+        final_station_scores.sort(key=lambda x: x[1])
+        return [station for station, score in final_station_scores[:3]]
 
     except Exception as e:
         print(f"Error processing stations: {e}")
-        return None
+
+# def find_best_station(stations, user_locations, factors):
+#     station_scores = []
+#     factor_weights = {
+#         2: float(os.getenv('FACTOR_2_WEIGHT', 1)),
+#         3: float(os.getenv('FACTOR_3_WEIGHT', 1)),
+#         4: float(os.getenv('FACTOR_4_WEIGHT', 1)),
+#         5: float(os.getenv('FACTOR_5_WEIGHT', 1)),
+#         6: float(os.getenv('FACTOR_6_WEIGHT', 1)),
+#         7: float(os.getenv('FACTOR_7_WEIGHT', 1))
+#     }
+#     total_transit_times = []
+
+#     def fetch_total_transit_time(station):
+#         total_transit_time = 0
+#         with ThreadPoolExecutor(max_workers=len(user_locations)) as executor:
+#             futures = {
+#                 executor.submit(get_transit_time, user['lon'], user['lat'], station['x'], station['y']): user
+#                 for user in user_locations
+#             }
+#             for future in as_completed(futures):
+#                 try:
+#                     transit_time = future.result()
+#                     if transit_time is None:
+#                         transit_time = float('inf')
+#                     total_transit_time += transit_time
+#                 except Exception as e:
+#                     print(f"Exception occurred while fetching transit time: {e}")
+#                     total_transit_time += float('inf')
+
+#         total_transit_times.append(total_transit_time)
+#         return total_transit_time
+
+#     try:
+#         with ThreadPoolExecutor(max_workers=len(stations)) as station_executor:
+#             station_futures = {station_executor.submit(fetch_total_transit_time, station): station for station in stations}
+#             results = []
+
+#             for future in as_completed(station_futures):
+#                 station = station_futures[future]
+#                 total_transit_time = future.result()
+#                 results.append((station, total_transit_time))
+
+#         min_transit_time = min(total_transit_times)
+#         max_transit_time = max(total_transit_times)
+#         range_transit_time = (max_transit_time - min_transit_time) if max_transit_time > min_transit_time else 1
+
+#         for station, total_transit_time in results:
+#             normalized_transit_time = (total_transit_time - min_transit_time) / range_transit_time
+
+#             try:
+#                 station_obj = Station.objects.get(station_name=station['station_name'])
+#             except Station.DoesNotExist:
+#                 print(f"Station {station['station_name']} not found in the database.")
+#                 continue
+
+#             factor_score = normalized_transit_time
+
+#             for factor in range(2, 8):
+#                 factor_score += getattr(station_obj, f'factor_{factor}', 0)
+
+#             for factor in factors:
+#                 factor_score += getattr(station_obj, f'factor_{factor}', 0) * factor_weights[factor]
+
+#             station_scores.append((station, factor_score))
+
+#         station_scores.sort(key=lambda x: x[1], reverse=True)
+#         return [station for station, score in station_scores[:3]]
+
+#     except Exception as e:
+#         print(f"Error processing stations: {e}")
+#         return None
