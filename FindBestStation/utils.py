@@ -96,15 +96,31 @@ def find_nearest_seoul(lon, lat):
 
 def adjust_location(loc):
     lon, lat = loc['lon'], loc['lat']
-    if is_within_seoul(lon, lat) == '서울특별시':
+    location_first, location_second=is_within_seoul(lon,lat)
+    print(f'location_first:{location_first}, location_second:{location_second}')
+    if location_first == '서울특별시':
         return {'lon': lon, 'lat': lat}
-    elif is_within_seoul(lon, lat) == '인천광역시':
+    elif location_first == '인천광역시':
         try:
             return {'lon': 126.801, 'lat': 37.563 }
         except ValueError as e: 
             print(e)
             return None
-    else: return None
+    elif location_first == '경기도':
+        if location_second== '용인시' or '성남시' or '여주시' or '이천시':
+            return {'lon': 127.034, 'lat': 37.485  }
+        elif location_second=='고양시':
+            return {'lon': 126.801, 'lat': 37.563 }
+        elif location_second=='과천시':
+            return {'lon': 126.801, 'lat': 37.563 }
+        elif location_second=='광명시':
+            return {'lon': 126.801, 'lat': 37.563 }
+        elif location_second=='광주시':
+            return {'lon': 126.801, 'lat': 37.563 }
+        elif location_second=='구리시':
+            return {'lon': 126.801, 'lat': 37.563 }
+        
+        
 
 def adjust_locations_to_seoul(locations):
     adjusted_locations = []
