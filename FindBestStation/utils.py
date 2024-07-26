@@ -274,10 +274,10 @@ def find_best_station(stations, user_locations, factors):
         min_time = min(transit_times)
         print(f'maxtime:{max_time}, mintime:{min_time}')
         # print('!!!!!!!!'+max_time+', '+ min_time + '!!!!!!!!')
-        
+        final_station_scores=[]
         for (station, station_score, transit_time) in station_scores:
             if(transit_time != float('inf')):
-                final_station_scores = [(station, station_score + (1-((transit_time - min_time)/(max_time-min_time))) * 2)]
+                final_station_scores.append((station, station_score + (1-((transit_time - min_time)/(max_time-min_time))) * 2))
                 print(final_station_scores)
         
         final_station_scores.sort(key=lambda x: x[1],reverse=True)
