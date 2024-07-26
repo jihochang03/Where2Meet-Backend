@@ -64,8 +64,9 @@ def is_within_seoul(lon, lat):
         documents = data.get('documents', [])
         if documents:
             region_1depth_name = documents[0].get('region_1depth_name', '')
+            region_2depth_name = documents[0].get('region_2depth_name', '')
             print(region_1depth_name)
-            return (region_1depth_name)
+            return region_1depth_name, region_2depth_name
             
 
 def find_nearest_seoul(lon, lat):
@@ -97,14 +98,13 @@ def adjust_location(loc):
     lon, lat = loc['lon'], loc['lat']
     if is_within_seoul(lon, lat) == '서울특별시':
         return {'lon': lon, 'lat': lat}
-    else:
+    elif is_within_seoul(lon, lat) == '인천광역시':
         try:
-            lon, lat = find_nearest_seoul(lon, lat)
-            print(f"Adjusted location to Seoul: lon={lon}, lat={lat}")
-            return {'lon': lon, 'lat': lat}
-        except ValueError as e:
+            return {'lon': 126.801, 'lat': 37.563 }
+        except ValueError as e: 
             print(e)
             return None
+    else: return None
 
 def adjust_locations_to_seoul(locations):
     adjusted_locations = []
