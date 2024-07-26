@@ -107,25 +107,36 @@ def adjust_location(loc):
             print(e)
             return None
     elif location_first == '경기도':
+        location_second=location_second.split(' ')[0]
         if location_second=='고양시': #구파발역
+            print(1)
             return {'lon': 126.918, 'lat': 37.636 }
         elif location_second=='동두천시' or '연천군' or '의정부시' or '포천시' or '양주시': #도봉산역
+            print(2)
             return {'lon': 127.046, 'lat': 37.689 }
         elif location_second=='광명시' or '의왕시': #금천구청역
+            print(3)
             return {'lon': 126.896, 'lat': 37.456 }
         elif location_second=='김포시': #김포공항역
+            print(4)
             return {'lon': 126.801, 'lat': 37.562 }
         elif location_second=='과천시' or '군포시' or '수원시' or '시흥시' or '안양시': #남태령역
+            print(5)
             return {'lon': 126.989, 'lat': 37.464 }
         elif location_second=='파주시': #수색역
+            print(6)
             return {'lon': 126.896, 'lat': 37.581 }
         elif location_second=='가평군' or '구리시' or '남양주시' or '양평군': #양원역
+            print(7)
             return {'lon': 127.108, 'lat': 37.607 }
         elif location_second=='부천시': #온수역
+            print(8)
             return {'lon': 126.824, 'lat': 37.492 }
         elif location_second=='광주시' or '용인시' or '성남시' or '여주시' or '이천시' or '안산시' or '안성시' or '오산시' or '평택시' or '화성시': #청계산입구역
+            print(9)
             return {'lon': 127.055, 'lat': 37.448 }
         elif location_second=='하남시': #강일역
+            print(10)
             return {'lon': 127.176, 'lat': 37.558 }
         else: return None
         
@@ -148,6 +159,7 @@ def adjust_locations_to_seoul(locations):
 def calculate_midpoint(locations):
     
     adjusted_locations = adjust_locations_to_seoul(locations)
+    print(adjusted_locations)
     if adjusted_locations is None:
         return 0, 0
     
