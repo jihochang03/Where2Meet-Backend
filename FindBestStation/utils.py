@@ -109,13 +109,13 @@ def adjust_location(loc):
     elif location_first == '경기도':
         if location_second=='고양시':
             return {'lon': 126.801, 'lat': 37.563 }
-        elif location_second=='동두천시' or '연천군' or '의정부시' or '포천시':
+        elif location_second=='동두천시' or '연천군' or '의정부시' or '포천시' or '양주시':
             return {'lon': 127.046, 'lat': 37.689 }
         elif location_second=='광명시' or '의왕시':
             return {'lon': 126.894, 'lat': 37.456 }
         elif location_second=='김포시':
             return {'lon': 126.801, 'lat': 37.562 }
-        elif location_second=='과천시' or '군포시' or '수원시' or '시흥시':
+        elif location_second=='과천시' or '군포시' or '수원시' or '시흥시' or '안양시':
             return {'lon': 126.989, 'lat': 37.464 }
         elif location_second=='파주시':
             return {'lon': 126.896, 'lat': 37.581 }
