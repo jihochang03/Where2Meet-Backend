@@ -198,25 +198,16 @@ def get_transit_time(start_x, start_y, end_x, end_y):
                     duration = path['info']['totalTime']
                     if duration < min_duration:
                         min_duration = duration
-                transit_time = min_duration if min_duration != float('inf') else 120
-            else:
-                transit_time = 120
-
-            if transit_time != 120:
-                print(transit_time)
-                return transit_time
-
-        except requests.exceptions.RequestException as e:
-            if response.status_code == 429: 
-                print(f"Too many requests. Retrying in {delay} seconds...")
-            else:
-                print(f"Error fetching transit time: {e}")
-                api_key_idx+=1
+                return min_duration if min_duration != float('inf') else 120
+            elif 'error' in data:
+                # retry with a different api key
                 api_key = get_next_api_key()
+                time.sleep(0.3)
+            else:
+                raise requests.exceptions.RequestException("No result or error in response")
+        except requests.exceptions.RequestException as e:
+            return 120  # Return 120 minutes if request fails
 
-        time.sleep(delay) 
-
-    print("Max retries reached or transit time is 120, returning 120")
     return 120
 
 def find_best_station(stations, user_locations, factors):
