@@ -271,7 +271,7 @@ def find_best_station(stations, user_locations, factors):
         max_time = max(transit_times)
         min_time = min(transit_times)
         
-        final_station_scores = [(station, station_score + (1-((transit_time - min_time)/(max_time-min_time))) * ) for (station, station_score, transit_time) in station_scores]
+        final_station_scores = [(station, station_score + (1-((transit_time - min_time)/(max_time-min_time))) * 2) for (station, station_score, transit_time) in station_scores]
         
         final_station_scores.sort(key=lambda x: x[1],reverse=True)
         return [station for station, score in final_station_scores[:3]]
