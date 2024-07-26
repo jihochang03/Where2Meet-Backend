@@ -270,12 +270,10 @@ def find_best_station(stations, user_locations, factors):
         
         max_time = max(transit_times)
         min_time = min(transit_times)
-        print(max_time, min_time)
         
-        final_station_scores = [(station, station_score + (1-((transit_time - min_time)/(max_time-min_time))) * 0.5) for (station, station_score, transit_time) in station_scores]
-        print(final_station_scores)
+        final_station_scores = [(station, station_score + (1-((transit_time - min_time)/(max_time-min_time))) * 1) for (station, station_score, transit_time) in station_scores]
         
-        final_station_scores.sort(key=lambda x: x[1])
+        final_station_scores.sort(key=lambda x: x[1],reverse=True)
         return [station for station, score in final_station_scores[:3]]
 
     except Exception as e:
