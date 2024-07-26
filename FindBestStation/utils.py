@@ -266,6 +266,7 @@ def find_best_station(stations, user_locations, factors):
             for future in as_completed(station_futures):
                 station, station_score, transit_time = future.result()
                 station_scores.append((station, station_score, transit_time))
+                print(station_scores)
                 if(transit_time != float('inf')) :
                     transit_times.append(transit_time)
         
