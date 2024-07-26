@@ -127,16 +127,16 @@
 <table >
   <tr height="130px">
     <td align="center" width="130px">
-      <a href="https://github.com/minseo25"><img src="src/assets/images/고양1.jpg" style="border-radius:50%"/></a>
+      <a href="https://github.com/minseo25"><img src="img/고양1.jpg" style="border-radius:50%"/></a>
     </td>
     <td align="center" width="130px">
-      <a href="https://github.com/Yeeunleel"><img src="src/assets/images/고양2.jpeg"  style="border-radius:50%" /></a>
+      <a href="https://github.com/Yeeunleel"><img src="img/고양2.jpeg"  style="border-radius:50%" /></a>
     </td>
     <td align="center" width="130px">
-      <a href="https://github.com/jihochang03"><img src="src/assets/images/고양3.jpg"  style="border-radius:50%"/></a>
+      <a href="https://github.com/jihochang03"><img src="img/고양3.jpg"  style="border-radius:50%"/></a>
     </td>
     <td align="center" width="130px">
-      <a href="https://github.com/rokiki2"><img src="src/assets/images/고양4.jpg"  style="border-radius:50%"/></a>
+      <a href="https://github.com/rokiki2"><img src="img/고양4.jpg"  style="border-radius:50%"/></a>
     </td>
   </tr>
   
