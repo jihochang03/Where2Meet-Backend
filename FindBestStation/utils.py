@@ -114,13 +114,13 @@ def adjust_location(loc):
         elif location_second in ['동두천시', '연천군', '의정부시', '포천시', '양주시']:  # 도봉산역
             print(2)
             return {'lon': 127.046, 'lat': 37.689}
-        elif location_second in ['광명시', '의왕시']:  # 금천구청역
+        elif location_second in ['광명시', '의왕시', '시흥시', '안산시']:  # 금천구청역
             print(3)
             return {'lon': 126.896, 'lat': 37.456}
         elif location_second == '김포시':  # 김포공항역
             print(4)
             return {'lon': 126.801, 'lat': 37.562}
-        elif location_second in ['과천시', '군포시', '수원시', '시흥시', '안양시']:  # 남태령역
+        elif location_second in ['과천시', '군포시', '수원시',  '안양시']:  # 남태령역
             print(5)
             return {'lon': 126.989, 'lat': 37.464}
         elif location_second == '파주시':  # 수색역
@@ -132,7 +132,7 @@ def adjust_location(loc):
         elif location_second == '부천시':  # 온수역
             print(8)
             return {'lon': 126.824, 'lat': 37.492}
-        elif location_second in ['광주시', '용인시', '성남시', '여주시', '이천시', '안산시', '안성시', '오산시', '평택시', '화성시']:  # 청계산입구역
+        elif location_second in ['광주시', '용인시', '성남시', '여주시', '이천시', '안성시', '오산시', '평택시', '화성시']:  # 청계산입구역
             print(9)
             return {'lon': 127.055, 'lat': 37.448}
         elif location_second == '하남시':  # 강일역
